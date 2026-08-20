@@ -3,6 +3,20 @@ entries:
   niral-one:
   - apiVersion: v2
     appVersion: latest
+    created: "2026-08-20T11:15:25.610108853Z"
+    description: Niral One is a highly extensible, self-hosted AI platform designed
+      to centralize your entire artificial intelligence workflow. Built on the philosophy
+      of absolute data sovereignty, Niral One empowers you to run complex local language
+      models or connect to cloud-based APIs through an elegant, user-friendly interface.
+    digest: 07ba3c1e0684424751f69a98b3bf1616f23984078bc3134da5e7da8c3bd8ac6e
+    icon: https://raw.githubusercontent.com/Niral-Networks/niralos-edge-app-store/main/assets/icon.png
+    name: niral-one
+    type: application
+    urls:
+    - https://github.com/Niral-Networks/niralos-edge-app-store/releases/download/niral-one-0.1.1/niral-one-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: latest
     created: "2026-08-20T11:10:00Z"
     description: Helm chart for Niral One
     digest: ff5b36b337a876e302e62f5868157e5900d04a0369ba4e008500d0c4673e6501
@@ -10,4 +24,4 @@ entries:
     urls:
     - niral-one-0.1.0.tgz
     version: 0.1.0
-generated: "2026-08-20T11:10:00Z"
+generated: "2026-08-20T11:15:25.610117776Z"
