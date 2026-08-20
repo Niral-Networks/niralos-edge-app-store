@@ -1,0 +1,43 @@
+replicaCount: 1
+
+image:
+  repository: niralnetworks/niral-one
+  tag: latest
+  pullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 3500
+  targetPort: 8080
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+  mountPath: /app/backend/data
+
+webui:
+  name: "Niral One"
+  secretKey: "niral-one-secret-key"
+  # For production, prefer --set-string webui.secretKey=... or an external Secret.
+
+# Docker's --add-host=host.docker.internal:host-gateway does not have a
+# portable Kubernetes equivalent. If your cluster does not resolve
+# host.docker.internal, add a static host alias here using the reachable
+# node/host IP, for example:
+# hostAliases:
+#   - ip: "192.168.1.10"
+#     hostnames:
+#       - "host.docker.internal"
+hostAliases: []
+
+resources: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,10 @@
+Niral One has been installed.
+
+Service: {{ include "niral-one.fullname" . }}
+Port: {{ .Values.service.port }} -> container {{ .Values.service.targetPort }}
+
+For local access when service.type=ClusterIP:
+  kubectl port-forward svc/{{ include "niral-one.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+Then open:
+  http://localhost:{{ .Values.service.port }}

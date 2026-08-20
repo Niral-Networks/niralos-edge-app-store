@@ -1,0 +1,6 @@
+apiVersion: v2
+name: niral-one
+description: Helm chart for Niral One
+version: 0.1.0
+appVersion: "latest"
+type: application
