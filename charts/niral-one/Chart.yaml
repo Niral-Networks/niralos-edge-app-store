@@ -1,7 +1,7 @@
 apiVersion: v2
 name: niral-one
 description: "Niral One is a highly extensible, self-hosted AI platform designed to centralize your entire artificial intelligence workflow. Built on the philosophy of absolute data sovereignty, Niral One empowers you to run complex local language models or connect to cloud-based APIs through an elegant, user-friendly interface."
-version: 0.1.2
+version: 0.1.3
 appVersion: "latest"
 type: application
 icon: https://raw.githubusercontent.com/Niral-Networks/niralos-edge-app-store/main/assets/icon.png
