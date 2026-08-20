@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  niral-one:
+  - apiVersion: v2
+    appVersion: latest
+    created: "2026-08-20T11:10:00Z"
+    description: Helm chart for Niral One
+    digest: ff5b36b337a876e302e62f5868157e5900d04a0369ba4e008500d0c4673e6501
+    name: niral-one
+    urls:
+    - niral-one-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-08-20T11:10:00Z"
