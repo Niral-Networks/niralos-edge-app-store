@@ -1,3 +1,4 @@
+# Workflow to package and publish Helm charts to gh-pages branch
 name: Release Helm Charts
 
 on:
