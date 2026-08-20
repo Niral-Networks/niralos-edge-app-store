@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: niralnetworks/niral-one
   tag: latest
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 nameOverride: ""
 fullnameOverride: ""
