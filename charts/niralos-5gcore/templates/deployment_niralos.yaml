@@ -1,0 +1,3528 @@
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-nrf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: nrf
+
+
+spec:
+  serviceName: niralos-nrf-1
+
+  replicas: {{ .Values.replicas.nrf }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: nrf
+
+
+  template:
+
+    metadata:
+      labels:
+        app: nrf
+
+
+    spec:
+
+      imagePullSecrets:
+        - name: dockerhub-secret
+
+
+      containers:
+
+        - name: nrf
+
+          image: {{ .Values.images.nrf | quote }}
+
+          imagePullPolicy: IfNotPresent
+
+
+          # --------------------------------------------------
+          # Start NRF
+          # --------------------------------------------------
+
+          command:
+            - /bin/bash
+            - -c
+            - |
+              /mnt/nrf/nrf_init.sh
+              exec /niralos/install/bin/niralos-nrfd
+
+
+          # --------------------------------------------------
+          # Environment variables from core-env ConfigMap
+          # --------------------------------------------------
+
+          envFrom:
+
+            - configMapRef:
+                name: core-env
+
+
+          # --------------------------------------------------
+          # NRF specific environment variables
+          # --------------------------------------------------
+
+          env:
+
+            - name: COMPONENT_NAME
+              value: {{ .Values.workloadEnv.nrf.COMPONENT_NAME | quote }}
+
+            - name: NRF_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+
+          # --------------------------------------------------
+          # Container ports
+          # --------------------------------------------------
+
+          ports:
+
+            - containerPort: 7777
+              name: sbi
+              protocol: TCP
+
+            - containerPort: 9090
+              name: metrics
+              protocol: TCP
+
+
+          # --------------------------------------------------
+          # Volume mounts
+          # --------------------------------------------------
+
+          volumeMounts:
+
+            - name: nrf-config
+              mountPath: /mnt/nrf
+              readOnly: true
+
+            - name: log-volume
+              mountPath: /niralos/install/var/log/niralos
+
+            - name: core-dump
+              mountPath: /mnt/core_dump
+
+
+      # ------------------------------------------------------
+      # Volumes
+      # ------------------------------------------------------
+
+      volumes:
+
+        - name: nrf-config
+          configMap:
+            name: nrf-config
+            defaultMode: 0755
+
+        - name: log-volume
+          emptyDir: {}
+
+        - name: core-dump
+          emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-scp
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: scp
+
+spec:
+  serviceName: niralos-scp-1
+
+  replicas: {{ .Values.replicas.scp }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: scp
+
+  template:
+    metadata:
+      labels:
+        app: scp
+
+    spec:
+
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+      - name: scp
+
+        image: {{ .Values.images.scp | quote }}
+        imagePullPolicy: IfNotPresent
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: COMPONENT_NAME
+          value: {{ .Values.workloadEnv.scp.COMPONENT_NAME | quote }}
+
+        - name: SCP_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        ports:
+        - containerPort: 7777
+          name: sbi
+
+        - containerPort: 9090
+          name: metrics
+
+        volumeMounts:
+        - name: scp-config
+          mountPath: /mnt/scp
+          readOnly: true
+
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+      volumes:
+
+      - name: scp-config
+        configMap:
+          name: scp-config
+          defaultMode: 0755
+
+      - name: log-volume
+        emptyDir: {}
+
+      - name: core-dump
+        emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-amf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: amf
+
+spec:
+  serviceName: niralos-amf-1
+
+  replicas: {{ .Values.replicas.amf }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: amf
+
+  template:
+    metadata:
+      labels:
+        app: amf
+
+    spec:
+
+      dnsPolicy: ClusterFirst
+
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+      - name: amf
+
+        image: {{ .Values.images.amf | quote }}
+        imagePullPolicy: IfNotPresent
+
+        command:
+          - /bin/bash
+          - -c
+          - |
+            /mnt/amf/amf_init.sh
+            exec /niralos/install/bin/niralos-amfd
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: AMF_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        - name: COMPONENT_NAME
+          value: {{ .Values.workloadEnv.amf.COMPONENT_NAME | quote }}
+
+        - name: CORE_PATTERN
+          value: {{ .Values.workloadEnv.amf.CORE_PATTERN | quote }}
+
+        ports:
+        - name: sbi
+          containerPort: 7777
+          protocol: TCP
+
+        - name: ngap
+          containerPort: 38412
+          protocol: SCTP
+
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+
+        volumeMounts:
+
+        - name: amf-config
+          mountPath: /mnt/amf
+          readOnly: true
+
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+      volumes:
+
+      - name: amf-config
+        configMap:
+          name: amf-config
+          defaultMode: 0755
+
+      - name: log-volume
+        emptyDir: {}
+
+      - name: core-dump
+        emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-ausf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: ausf
+
+spec:
+  serviceName: niralos-ausf-1
+
+  replicas: {{ .Values.replicas.ausf }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: ausf
+
+  template:
+    metadata:
+      labels:
+        app: ausf
+
+    spec:
+
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+
+      - name: ausf
+
+        image: {{ .Values.images.ausf | quote }}
+        imagePullPolicy: IfNotPresent
+
+        command:
+          - /bin/bash
+          - -c
+          - |
+            /mnt/ausf/ausf_init.sh
+            exec /niralos/install/bin/niralos-ausfd
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: AUSF_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        ports:
+        - containerPort: 7777
+          name: sbi
+
+        - containerPort: 9090
+          name: metrics
+
+        volumeMounts:
+
+        - name: ausf-config
+          mountPath: /mnt/ausf
+          readOnly: true
+
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+# Uncomment if using TLS Secret
+#
+#        - name: tls
+#          mountPath: /mnt/newtls
+#          readOnly: true
+
+      volumes:
+
+      - name: ausf-config
+        configMap:
+          name: ausf-config
+          defaultMode: 0755
+
+      - name: log-volume
+        emptyDir: {}
+
+      - name: core-dump
+        emptyDir: {}
+
+# Uncomment if TLS Secret exists
+#
+#      - name: tls
+#        secret:
+#          secretName: niral-tls
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-udr
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: udr
+
+spec:
+  serviceName: udr-service
+
+  replicas: {{ .Values.replicas.udr }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: udr
+
+  template:
+    metadata:
+      labels:
+        app: udr
+
+    spec:
+
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+      - name: udr
+
+        image: {{ .Values.images.udr | quote }}
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          capabilities:
+            add:
+              - SYS_PTRACE
+
+        command:
+          - /bin/bash
+          - -c
+          - |
+            /mnt/udr/udr_init.sh
+            exec /niralos/install/bin/niralos-udrd
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: UDR_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        ports:
+        - containerPort: 7777
+          name: sbi
+
+        - containerPort: 9090
+          name: metrics
+
+        volumeMounts:
+
+        - name: udr-config
+          mountPath: /mnt/udr
+          readOnly: true
+
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+      volumes:
+
+      - name: udr-config
+        configMap:
+          name: udr-config
+          defaultMode: 0755
+
+      - name: log-volume
+        emptyDir: {}
+
+      - name: core-dump
+        emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-udm
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: udm
+
+spec:
+  serviceName: niralos-udm-1
+
+  replicas: {{ .Values.replicas.udm }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: udm
+
+  template:
+    metadata:
+      labels:
+        app: udm
+
+    spec:
+
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+      - name: udm
+
+        image: {{ .Values.images.udm | quote }}
+        imagePullPolicy: IfNotPresent
+
+        command:
+        - /bin/bash
+        - -c
+        - |
+          /mnt/udm/udm_init.sh
+          exec /niralos/install/bin/niralos-udmd
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: UDM_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        ports:
+        - containerPort: 7777
+          name: sbi
+
+        - containerPort: 9090
+          name: metrics
+
+        volumeMounts:
+
+        - name: udm-config
+          mountPath: /mnt/udm
+          readOnly: true
+
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+      volumes:
+
+      - name: udm-config
+        configMap:
+          name: udm-config
+          defaultMode: 0755
+
+      - name: log-volume
+        emptyDir: {}
+
+      - name: core-dump
+        emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-pcf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: pcf
+
+spec:
+  serviceName: niralos-pcf-1
+
+  replicas: {{ .Values.replicas.pcf }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: pcf
+
+  template:
+    metadata:
+      labels:
+        app: pcf
+
+    spec:
+
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+      - name: pcf
+
+        image: {{ .Values.images.pcf | quote }}
+        imagePullPolicy: IfNotPresent
+
+        command:
+        - /bin/bash
+        - -c
+        - |
+          /mnt/pcf/pcf_init.sh
+          exec /niralos/install/bin/niralos-pcfd
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: PCF_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        ports:
+        - containerPort: 7777
+          name: sbi
+
+        - containerPort: 9090
+          name: metrics
+
+        volumeMounts:
+
+        - name: pcf-config
+          mountPath: /mnt/pcf
+          readOnly: true
+
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+      volumes:
+
+      - name: pcf-config
+        configMap:
+          name: pcf-config
+          defaultMode: 0755
+
+      - name: log-volume
+        emptyDir: {}
+
+      - name: core-dump
+        emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-bsf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: bsf
+
+spec:
+  serviceName: niralos-bsf-1
+
+  replicas: {{ .Values.replicas.bsf }}
+  ordinals:
+    start: 1
+
+
+  selector:
+    matchLabels:
+      app: bsf
+
+  template:
+    metadata:
+      labels:
+        app: bsf
+
+    spec:
+
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+      - name: bsf
+
+        image: {{ .Values.images.bsf | quote }}
+        imagePullPolicy: IfNotPresent
+
+        command:
+          - /bin/bash
+          - -c
+          - |
+            /mnt/bsf/bsf_init.sh
+            exec /niralos/install/bin/niralos-bsfd
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: BSF_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        ports:
+        - containerPort: 7777
+          name: sbi
+
+        - containerPort: 9090
+          name: metrics
+
+        volumeMounts:
+
+        - name: bsf-config
+          mountPath: /mnt/bsf
+          readOnly: true
+
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+# Uncomment these only if you are using TLS certificates
+#
+#        - name: tls
+#          mountPath: /mnt/newtls
+#          readOnly: true
+
+      volumes:
+
+      - name: bsf-config
+        configMap:
+          name: bsf-config
+          defaultMode: 0755
+
+      - name: log-volume
+        emptyDir: {}
+
+      - name: core-dump
+        emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-nssf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: nssf
+
+spec:
+  serviceName: niralos-nssf-1
+
+  replicas: {{ .Values.replicas.nssf }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: nssf
+
+  template:
+
+    metadata:
+      labels:
+        app: nssf
+
+    spec:
+
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+
+      - name: nssf
+
+        image: {{ .Values.images.nssf | quote }}
+        imagePullPolicy: IfNotPresent
+
+        command:
+          - /bin/bash
+          - -c
+          - |
+            /mnt/nssf/nssf_init.sh
+            exec /niralos/install/bin/niralos-nssfd
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: NSSF_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        ports:
+
+        - containerPort: 7777
+          name: sbi
+
+        - containerPort: 9090
+          name: metrics
+
+        volumeMounts:
+
+        - name: nssf-config
+          mountPath: /mnt/nssf
+          readOnly: true
+
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+# Uncomment if TLS Secret is available
+#
+#        - name: tls
+#          mountPath: /mnt/newtls
+#          readOnly: true
+
+      volumes:
+
+      - name: nssf-config
+        configMap:
+          name: nssf-config
+          defaultMode: 0755
+
+      - name: log-volume
+        emptyDir: {}
+
+      - name: core-dump
+        emptyDir: {}
+
+---
+
+# apiVersion: apps/v1
+# kind: StatefulSet
+
+# metadata:
+#   name: niralos-smf
+#   namespace: niralos
+#   labels:
+#     app: smf
+
+# spec:
+#   serviceName: niralos-smf-1
+
+#   replicas: 1
+
+#   ordinals:
+#     start: 1
+
+#   selector:
+#     matchLabels:
+#       app: smf
+
+#   template:
+#     metadata:
+#       labels:
+#         app: smf
+
+#     spec:
+
+#       imagePullSecrets:
+#       - name: dockerhub-secret
+
+#       containers:
+#       - name: smf
+
+#         image: {{ .Values.images.smf | quote }}
+#         imagePullPolicy: IfNotPresent
+
+#         command:
+#           - /bin/bash
+#           - -c
+#           - |
+#             /mnt/smf/smf_init.sh
+#             exec /niralos/install/bin/niralos-smfd
+
+#         envFrom:
+#         - configMapRef:
+#             name: core-env
+
+#         env:
+#         - name: SMF_IP
+#           valueFrom:
+#             fieldRef:
+#               fieldPath: status.podIP
+
+#         ports:
+
+#         - containerPort: 7777
+#           name: sbi
+
+#         - containerPort: 2123
+#           name: gtpc
+#           protocol: UDP
+
+#         - containerPort: 8805
+#           name: pfcp
+#           protocol: UDP
+
+#         - containerPort: 9091
+#           name: metrics
+
+#         volumeMounts:
+
+#         - name: smf-config
+#           mountPath: /mnt/smf
+#           readOnly: true
+
+#         - name: log-volume
+#           mountPath: /niralos/install/var/log/niralos
+
+#         - name: core-dump
+#           mountPath: /mnt/core_dump
+
+#       volumes:
+
+#       - name: smf-config
+#         configMap:
+#           name: smf-config
+#           defaultMode: 0755
+
+#       - name: log-volume
+#         emptyDir: {}
+
+#       - name: core-dump
+#         emptyDir: {}
+
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-smf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: smf
+
+spec:
+  serviceName: niralos-smf-1
+
+  replicas: {{ .Values.replicas.smf }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: smf
+
+  template:
+    metadata:
+      labels:
+        app: smf
+    spec:
+
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+      - name: smf
+
+        image: {{ .Values.images.smf | quote }}
+        imagePullPolicy: IfNotPresent
+
+        command:
+          - /bin/bash
+          - -c
+          - |
+            /mnt/smf/smf_init.sh
+            exec /niralos/install/bin/niralos-smfd
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: SMF_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        ports:
+
+        - containerPort: 7777
+          name: sbi
+
+        - containerPort: 2123
+          name: gtpc
+          protocol: UDP
+
+        - containerPort: 8805
+          name: pfcp
+          protocol: UDP
+
+        - containerPort: 9091
+          name: metrics
+
+        volumeMounts:
+
+        - name: smf-config
+          mountPath: /mnt/smf
+          readOnly: true
+
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+      volumes:
+
+      - name: smf-config
+        configMap:
+          name: smf-config
+          defaultMode: 0755
+
+      - name: log-volume
+        emptyDir: {}
+
+      - name: core-dump
+        emptyDir: {}
+
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-upf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: upf
+
+spec:
+  serviceName: niralos-upf-1
+
+  replicas: {{ .Values.replicas.upf }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: upf
+
+  template:
+    metadata:
+      labels:
+        app: upf
+{{- if .Values.networking.attachments.upf.enabled }}
+      annotations:
+        k8s.v1.cni.cncf.io/networks: |
+          [{
+            "name":"{{ .Values.networking.attachments.upf.name }}",
+            "ips":["{{ .Values.networking.attachments.upf.ips }}"]
+          }]
+{{- end }}
+    spec:
+
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+      - name: upf
+
+        image: {{ .Values.images.upf | quote }}
+        imagePullPolicy: IfNotPresent
+
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+              - NET_ADMIN
+
+        command:
+          - /bin/bash
+
+        args:
+          - /mnt/upf/upf_init.sh
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: UPF_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        - name: UPF_ADVERTISE_IP
+          value: {{ .Values.workloadEnv.upf.UPF_ADVERTISE_IP | quote }}
+
+        - name: COMPONENT_NAME
+          value: {{ .Values.workloadEnv.upf.COMPONENT_NAME | quote }}
+
+        - name: CORE_PATTERN
+          value: {{ .Values.workloadEnv.upf.CORE_PATTERN | quote }}
+
+        ports:
+        - containerPort: 2152
+          protocol: UDP
+
+        - containerPort: 8805
+          protocol: UDP
+
+        - containerPort: 9190
+
+        - containerPort: 9191
+
+        volumeMounts:
+        - name: upf-config
+          mountPath: /mnt/upf
+
+        - name: logs
+          mountPath: /niralos/install/var/log/niralos
+
+        - name: core-dumps
+          mountPath: /mnt/core_dump
+
+      volumes:
+      - name: upf-config
+        configMap:
+          name: upf-config
+          defaultMode: 0777
+
+      - name: logs
+        hostPath:
+          path: {{ (index .Values.storage.hostPaths "niralos-upf.logs").path }}
+          type: {{ (index .Values.storage.hostPaths "niralos-upf.logs").type }}
+
+      - name: core-dumps
+        hostPath:
+          path: {{ (index .Values.storage.hostPaths "niralos-upf.core-dumps").path }}
+          type: {{ (index .Values.storage.hostPaths "niralos-upf.logs").type }}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: niralos-chf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: chf
+
+spec:
+  serviceName: chf-service
+
+  replicas: {{ .Values.replicas.chf }}
+  ordinals:
+    start: 1
+  selector:
+    matchLabels:
+      app: chf
+
+  template:
+    metadata:
+      labels:
+        app: chf
+
+    spec:
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+      - name: chf
+        image: {{ .Values.images.chf | quote }} #Update with your specific tag if needed
+        imagePullPolicy: IfNotPresent
+
+        command:
+          - /bin/sh
+          - -c
+          - |
+            /mnt/chf/chf_init.sh
+            ulimit -c unlimited
+            exec /niralos-chf/chf -c /chf/chfcfg.yaml
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        # Dynamically pull the internal Kubernetes Pod IP
+        - name: CHF_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        # Point directly to the internal Kubernetes Service name for NRF
+        - name: NRF_IP
+          value: {{ .Values.workloadEnv.chf.NRF_IP | quote }}
+
+        - name: COMPONENT_NAME
+          value: {{ .Values.workloadEnv.chf.COMPONENT_NAME | quote }}
+
+        - name: CORE_PATTERN
+          value: {{ .Values.workloadEnv.chf.CORE_PATTERN | quote }}
+
+        ports:
+        - containerPort: 8000
+          protocol: TCP
+        - containerPort: 3868
+          protocol: TCP
+        - containerPort: 3869
+          protocol: TCP
+        - containerPort: 2121
+          protocol: TCP
+        - containerPort: 2122
+          protocol: TCP
+
+        volumeMounts:
+        - name: chf-config
+          mountPath: /mnt/chf
+          readOnly: true
+
+        - name: chf-certs
+          mountPath: /chf/cert
+          readOnly: true
+
+        - name: chf-log
+          mountPath: /chf/log
+
+      volumes:
+      - name: chf-config
+        configMap:
+          name: chf-config
+          defaultMode: 0755
+
+      - name: chf-certs
+        secret:
+          secretName: chf-tls
+
+      - name: chf-log
+        emptyDir: {}
+
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: niralos-nwdaf
+  namespace: {{ .Release.Namespace }}
+spec:
+  serviceName: nwdaf-service
+
+  replicas: {{ .Values.replicas.nwdaf }}
+  ordinals:
+    start: 1
+  selector:
+    matchLabels:
+      app: nwdaf
+
+  template:
+    metadata:
+      labels:
+        app: nwdaf
+
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: nwdaf
+          image: {{ .Values.images.nwdaf | quote }}
+          imagePullPolicy: IfNotPresent
+
+          env:
+            - name: NWDAF_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+            - name: NRF_IP
+              value: {{ .Values.workloadEnv.nwdaf.NRF_IP | quote }}
+
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -x
+
+              mkdir -p /tmp
+
+              cp /niral_config/yaml/nwdafcfg.yaml /tmp/nwdafcfg.yaml
+
+              sed -i "s|__NWDAF_IP__|${NWDAF_IP}|g" /tmp/nwdafcfg.yaml
+              sed -i "s|__NRF_IP__|${NRF_IP}|g" /tmp/nwdafcfg.yaml
+
+              echo "========== GENERATED CONFIG =========="
+              cat /tmp/nwdafcfg.yaml
+
+              exec /install/bin/niralos-nwdafd \
+                -nwdafcfg /tmp/nwdafcfg.yaml \
+                -l /niral_config/log/nwdaf.log
+
+          ports:
+            - containerPort: 29600
+              name: sbi
+
+            - containerPort: 9090
+              name: metrics
+
+          volumeMounts:
+            - name: nwdaf-config
+              mountPath: /niral_config/yaml/nwdafcfg.yaml
+              subPath: nwdafcfg.yaml
+
+            - name: log-volume
+              mountPath: /niral_config/log
+
+      volumes:
+        - name: nwdaf-config
+          configMap:
+            name: nwdaf-config
+
+        - name: log-volume
+          emptyDir: {}
+
+      restartPolicy: Always
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-nef
+  namespace: {{ .Release.Namespace }}
+spec:
+  serviceName: nef-service
+
+  replicas: {{ .Values.replicas.nef }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: nef
+
+  template:
+    metadata:
+      labels:
+        app: nef
+
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+
+      containers:
+        - name: nef
+          image: {{ .Values.images.nef | quote }}
+
+          securityContext:
+            privileged: true
+
+          env:
+            - name: COMPONENT_NAME
+              value: {{ .Values.workloadEnv.nef.COMPONENT_NAME | quote }}
+
+            - name: CORE_PATTERN
+              value: {{ .Values.workloadEnv.nef.CORE_PATTERN | quote }}
+
+            - name: NEF_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+          ports:
+            - containerPort: 29599
+              protocol: TCP
+
+          command:
+            - /bin/bash
+            - -c
+            - |
+              ulimit -c unlimited
+              sleep 20
+
+              cp /mnt/nef/nefcfg.yaml /tmp/nefcfg.yaml
+
+              sed -i "s/__NEF_IP__/${NEF_IP}/g" /tmp/nefcfg.yaml
+
+              echo "===== GENERATED CONFIG ====="
+              cat /tmp/nefcfg.yaml
+
+              exec /install/bin/niralos-nefd \
+                --nefcfg /tmp/nefcfg.yaml \
+                -l /niral_config/log/nef.log
+
+          volumeMounts:
+            - name: nef-config
+              mountPath: /mnt/nef
+
+            - name: niral-config
+              mountPath: /niral_config
+
+      volumes:
+        - name: nef-config
+          configMap:
+            name: nef-config
+
+        - name: niral-config
+          hostPath:
+            path: {{ (index .Values.storage.hostPaths "niralos-nef.niral-config").path }}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: niralos-n3iwf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: n3iwf
+
+spec:
+  serviceName: n3iwf-service
+
+  replicas: {{ .Values.replicas.n3iwf }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: n3iwf
+
+  template:
+    metadata:
+      labels:
+        app: n3iwf
+{{- if .Values.networking.attachments.n3iwf.enabled }}
+      annotations:
+        k8s.v1.cni.cncf.io/networks: |
+          [{
+            "name":"{{ .Values.networking.attachments.n3iwf.name }}",
+            "ips":["{{ .Values.networking.attachments.n3iwf.ips }}"]
+          }]
+{{- end }}
+
+    spec:
+      dnsPolicy: ClusterFirst
+
+      imagePullSecrets:
+      - name: dockerhub-secret
+
+      containers:
+      - name: n3iwf
+
+        image: {{ .Values.images.n3iwf | quote }}
+        imagePullPolicy: IfNotPresent
+
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["NET_ADMIN"]
+
+        command:
+          - /bin/sh
+          - -c
+          - |
+            /mnt/n3iwf/n3iwf_init.sh
+            ulimit -c unlimited
+            exec /n3iwf/n3iwf -c /n3iwf/n3iwfcfg.yaml
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: N3IWF_IP
+          value: {{ .Values.workloadEnv.n3iwf.N3IWF_IP | quote }}
+
+        - name: AMF_IP
+          value: {{ .Values.workloadEnv.n3iwf.AMF_IP | quote }}
+
+        - name: COMPONENT_NAME
+          value: {{ .Values.workloadEnv.n3iwf.COMPONENT_NAME | quote }}
+
+        - name: CORE_PATTERN
+          value: {{ .Values.workloadEnv.n3iwf.CORE_PATTERN | quote }}
+
+        ports:
+        - containerPort: 4500
+          protocol: UDP
+        - containerPort: 500
+          protocol: UDP
+        - containerPort: 2152
+          protocol: UDP
+        - containerPort: 20000
+          protocol: TCP
+        - containerPort: 20000
+          protocol: UDP
+
+        volumeMounts:
+        - name: n3iwf-config
+          mountPath: /mnt/n3iwf
+          readOnly: true
+
+        - name: n3iwf-certs
+          mountPath: /n3iwf/cert
+          readOnly: true
+
+        - name: lib-modules
+          mountPath: /lib/modules
+
+        - name: n3iwf-log
+          mountPath: /n3iwf/log
+
+      volumes:
+      - name: n3iwf-config
+        configMap:
+          name: n3iwf-config
+          defaultMode: 0755
+
+      - name: n3iwf-certs
+        secret:
+          secretName: n3iwf-tls
+
+      - name: lib-modules
+        hostPath:
+          path: {{ (index .Values.storage.hostPaths "niralos-n3iwf.lib-modules").path }}
+
+      - name: n3iwf-log
+        emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: niralos-rtpengine
+  namespace: {{ .Release.Namespace }}
+spec:
+  serviceName: niralos-rtpengine-1
+  replicas: {{ .Values.replicas.rtpengine }}
+  ordinals:
+    start: 1
+  selector:
+    matchLabels:
+      app: rtpengine
+  template:
+    metadata:
+      labels:
+        app: rtpengine
+    spec:
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: rtpengine
+          image: {{ .Values.images.rtpengine | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - |
+              chmod +x /mnt/rtpengine/rtpengine_init.sh
+              exec /mnt/rtpengine/rtpengine_init.sh
+          envFrom:
+            - configMapRef:
+                name: core-env
+          env:
+            - name: RTPENGINE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: TABLE
+              value: {{ .Values.workloadEnv.rtpengine.TABLE | quote }}
+            - name: PORT_MIN
+              value: {{ .Values.workloadEnv.rtpengine.PORT_MIN | quote }}
+            - name: PORT_MAX
+              value: {{ .Values.workloadEnv.rtpengine.PORT_MAX | quote }}
+            - name: TOS
+              value: {{ .Values.workloadEnv.rtpengine.TOS | quote }}
+            - name: NO_FALLBACK
+              value: {{ .Values.workloadEnv.rtpengine.NO_FALLBACK | quote }}
+            - name: PIDFILE
+              value: {{ .Values.workloadEnv.rtpengine.PIDFILE | quote }}
+            - name: SITE_ID
+              value: {{ .Values.workloadEnv.rtpengine.SITE_ID | quote }}
+          ports:
+            - name: rtp-ng
+              containerPort: 2223
+              protocol: UDP
+            - name: rtp-cli
+              containerPort: 2224
+              protocol: UDP
+            - name: rtp-http
+              containerPort: 2225
+              protocol: TCP
+            - name: prometheus
+              containerPort: 9092
+              protocol: TCP
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - NET_ADMIN
+          volumeMounts:
+            - name: rtpengine-config
+              mountPath: /mnt/rtpengine
+              readOnly: true
+            - name: rtpengine-run
+              mountPath: /run
+      volumes:
+        - name: rtpengine-config
+          configMap:
+            name: rtpengine-config
+            defaultMode: 0755
+        - name: rtpengine-run
+          emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: niralos-dns
+  namespace: {{ .Release.Namespace }}
+spec:
+  serviceName: niralos-dns-1
+
+  replicas: {{ .Values.replicas.dns }}
+  ordinals:
+    start: 1
+
+  selector:
+    matchLabels:
+      app: niralos-dns
+
+  template:
+    metadata:
+      labels:
+        app: niralos-dns
+
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+
+      containers:
+        - name: dns
+          image: {{ .Values.images.dns | quote }}
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - /bin/bash
+            - -c
+            - |
+              /mnt/dns/dns_init.sh
+              exec /usr/sbin/named -c /etc/bind/named.conf -g -u bind
+
+          envFrom:
+            - configMapRef:
+                name: core-env
+
+          env:
+            # Get DNS Pod IP dynamically
+            - name: DNS_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: TIMESCALEDB_IP
+              value: {{ .Values.workloadEnv.dns.TIMESCALEDB_IP | quote }}
+            - name: PCRF_IP
+              value: {{ .Values.workloadEnv.dns.PCRF_IP | quote }}
+            - name: ICSCF_IP
+              value: {{ .Values.workloadEnv.dns.ICSCF_IP | quote }}
+            - name: ICSCF_BIND_PORT
+              value: {{ .Values.workloadEnv.dns.ICSCF_BIND_PORT | quote }}
+            - name: PYHSS_IP
+              value: {{ .Values.workloadEnv.dns.PYHSS_IP | quote }}
+            - name: PYHSS_BIND_PORT
+              value: {{ .Values.workloadEnv.dns.PYHSS_BIND_PORT | quote }}
+            - name: SCSCF_IP
+              value: {{ .Values.workloadEnv.dns.SCSCF_IP | quote }}
+            - name: SCSCF_BIND_PORT
+              value: {{ .Values.workloadEnv.dns.SCSCF_BIND_PORT | quote }}
+            - name: PCSCF_IP
+              value: {{ .Values.workloadEnv.dns.PCSCF_IP | quote }}
+            - name: PCSCF_BIND_PORT
+              value: {{ .Values.workloadEnv.dns.PCSCF_BIND_PORT | quote }}
+            - name: SMSC_IP
+              value: {{ .Values.workloadEnv.dns.SMSC_IP | quote }}
+            - name: SMSC_BIND_PORT
+              value: {{ .Values.workloadEnv.dns.SMSC_BIND_PORT | quote }}
+            - name: RTPENGINE_IP
+              value: {{ .Values.workloadEnv.dns.RTPENGINE_IP | quote }}
+            - name: MYSQL_IP
+              value: {{ .Values.workloadEnv.dns.MYSQL_IP | quote }}
+            - name: MYSQL_PORT
+              value: {{ .Values.workloadEnv.dns.MYSQL_PORT | quote }}
+
+          ports:
+            - name: dns-udp
+              containerPort: 53
+              protocol: UDP
+
+            - name: dns-tcp
+              containerPort: 53
+              protocol: TCP
+
+          volumeMounts:
+            - name: dns-config
+              mountPath: /mnt/dns
+              readOnly: true
+
+            - name: timezone
+              mountPath: /etc/timezone
+              readOnly: true
+
+            - name: localtime
+              mountPath: /etc/localtime
+              readOnly: true
+
+      volumes:
+        - name: dns-config
+          configMap:
+            name: dns-config
+            defaultMode: 0755
+
+        - name: timezone
+          hostPath:
+            path: {{ (index .Values.storage.hostPaths "niralos-dns.timezone").path }}
+            type: {{ (index .Values.storage.hostPaths "niralos-dns.timezone").type }}
+
+        - name: localtime
+          hostPath:
+            path: {{ (index .Values.storage.hostPaths "niralos-dns.localtime").path }}
+            type: {{ (index .Values.storage.hostPaths "niralos-dns.timezone").type }}
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: niralos-scscf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: scscf
+spec:
+  serviceName: niralos-scscf-1
+
+  replicas: {{ .Values.replicas.scscf }}
+  ordinals:
+    start: 1
+  selector:
+    matchLabels:
+      app: scscf
+  template:
+    metadata:
+      labels:
+        app: scscf
+    spec:
+      imagePullSecrets:
+      - name: dockerhub-secret
+      containers:
+      - name: scscf
+        image: {{ .Values.images.scscf | quote }}
+        imagePullPolicy: IfNotPresent
+
+        # Pull global variables (MCC, MNC, MYSQL_IP, TIMESCALEDB_IP, etc.)
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: COMPONENT_NAME
+          value: {{ .Values.workloadEnv.scscf.COMPONENT_NAME | quote }}
+        - name: SCSCF_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        ports:
+        # Diameter Cx
+        - name: diameter-tcp
+          containerPort: 3870
+          protocol: TCP
+        - name: diameter-udp
+          containerPort: 3870
+          protocol: UDP
+        # SIP
+        - name: sip-tcp
+          containerPort: 6060
+          protocol: TCP
+        - name: sip-udp
+          containerPort: 6060
+          protocol: UDP
+
+        volumeMounts:
+        - name: scscf-config
+          mountPath: /mnt/scscf
+          readOnly: true
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+      volumes:
+      - name: scscf-config
+        configMap:
+          name: scscf-config
+          defaultMode: 0755
+      - name: log-volume
+        emptyDir: {}
+      - name: core-dump
+        emptyDir: {}
+
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: niralos-icscf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: icscf
+spec:
+  serviceName: niralos-icscf-1
+
+  replicas: {{ .Values.replicas.icscf }}
+  ordinals:
+    start: 1
+  selector:
+    matchLabels:
+      app: icscf
+  template:
+    metadata:
+      labels:
+        app: icscf
+    spec:
+      imagePullSecrets:
+      - name: dockerhub-secret
+      containers:
+      - name: icscf
+        image: {{ .Values.images.icscf | quote }}
+        imagePullPolicy: IfNotPresent
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: COMPONENT_NAME
+          value: {{ .Values.workloadEnv.icscf.COMPONENT_NAME | quote }}
+        - name: ICSCF_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        ports:
+        # SIP
+        - name: sip-tcp
+          containerPort: 4060
+          protocol: TCP
+        - name: sip-udp
+          containerPort: 4060
+          protocol: UDP
+        # Diameter Cx
+        - name: diameter-tcp
+          containerPort: 3869
+          protocol: TCP
+        - name: diameter-udp
+          containerPort: 3869
+          protocol: UDP
+
+        volumeMounts:
+        - name: icscf-config
+          mountPath: /mnt/icscf
+          readOnly: true
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+      volumes:
+      - name: icscf-config
+        configMap:
+          name: icscf-config
+          defaultMode: 0755
+      - name: log-volume
+        emptyDir: {}
+      - name: core-dump
+        emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: niralos-pcscf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: pcscf
+spec:
+  serviceName: niralos-pcscf-1
+
+  replicas: {{ .Values.replicas.pcscf }}
+  ordinals:
+    start: 1
+  selector:
+    matchLabels:
+      app: pcscf
+  template:
+    metadata:
+      labels:
+        app: pcscf
+    spec:
+      imagePullSecrets:
+      - name: dockerhub-secret
+      containers:
+      - name: pcscf
+        image: {{ .Values.images.pcscf | quote }}
+        imagePullPolicy: IfNotPresent
+
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["NET_ADMIN"]
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: COMPONENT_NAME
+          value: {{ .Values.workloadEnv.pcscf.COMPONENT_NAME | quote }}
+        - name: DEPLOY_MODE
+          value: {{ .Values.workloadEnv.pcscf.DEPLOY_MODE | quote }}
+        - name: PCSCF_N5_ENABLE
+          value: {{ .Values.workloadEnv.pcscf.PCSCF_N5_ENABLE | quote }}
+        - name: PCSCF_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: RTPENGINE_IP
+          value: {{ .Values.workloadEnv.pcscf.RTPENGINE_IP | quote }}
+        - name: SCP_IP
+          value: {{ .Values.workloadEnv.pcscf.SCP_IP | quote }}
+        - name: UPF_IP
+          value: {{ .Values.workloadEnv.pcscf.UPF_IP | quote }}
+
+        ports:
+        - name: sip-tcp
+          containerPort: 5060
+          protocol: TCP
+        - name: sip-udp
+          containerPort: 5060
+          protocol: UDP
+        - name: diameter-tcp
+          containerPort: 3871
+          protocol: TCP
+        - name: diameter-udp
+          containerPort: 3871
+          protocol: UDP
+        - name: n5-sbi
+          containerPort: 7777
+          protocol: TCP
+
+        volumeMounts:
+        - name: pcscf-config
+          mountPath: /mnt/pcscf
+          readOnly: true
+        - name: pcscf-route-config
+          mountPath: /mnt/pcscf_route
+          readOnly: true
+        - name: pcscf-extra-config
+          mountPath: /mnt/pcscf_extra
+          readOnly: true
+        - name: pcscf-sems-config
+          mountPath: /mnt/pcscf_sems
+          readOnly: true
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+      volumes:
+      - name: pcscf-config
+        configMap:
+          name: pcscf-config
+          defaultMode: 0755
+      - name: pcscf-route-config
+        configMap:
+          name: pcscf-route-config
+      - name: pcscf-extra-config
+        configMap:
+          name: pcscf-extra-config
+      - name: pcscf-sems-config
+        configMap:
+          name: pcscf-sems-config
+      - name: log-volume
+        emptyDir: {}
+      - name: core-dump
+        emptyDir: {}
+
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: niralos-pyhss
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: pyhss
+spec:
+  serviceName: niralos-pyhss-1
+
+  replicas: {{ .Values.replicas.pyhss }}
+  ordinals:
+    start: 1
+  selector:
+    matchLabels:
+      app: pyhss
+  template:
+    metadata:
+      labels:
+        app: pyhss
+    spec:
+      imagePullSecrets:
+      - name: dockerhub-secret
+      containers:
+      - name: pyhss
+        image: {{ .Values.images.pyhss | quote }}
+        imagePullPolicy: IfNotPresent
+
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: COMPONENT_NAME
+          value: {{ .Values.workloadEnv.pyhss.COMPONENT_NAME | quote }}
+        - name: PYHSS_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: PYHSS_BIND_PORT
+          value: {{ .Values.workloadEnv.pyhss.PYHSS_BIND_PORT | quote }}
+
+        ports:
+        # Diameter Port
+        - name: diameter-tcp
+          containerPort: 3868
+          protocol: TCP
+        - name: diameter-udp
+          containerPort: 3868
+          protocol: UDP
+        # PyHSS API Port
+        - name: api
+          containerPort: 8080
+          protocol: TCP
+
+        volumeMounts:
+        - name: pyhss-config
+          mountPath: /mnt/pyhss
+          readOnly: true
+        - name: log-volume
+          mountPath: /pyhss/log/
+
+      volumes:
+      - name: pyhss-config
+        configMap:
+          name: pyhss-config
+          defaultMode: 0755
+      - name: log-volume
+        emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: niralos-smsc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: smsc
+spec:
+  serviceName: niralos-smsc-1
+
+  replicas: {{ .Values.replicas.smsc }}
+  ordinals:
+    start: 1
+  selector:
+    matchLabels:
+      app: smsc
+  template:
+    metadata:
+      labels:
+        app: smsc
+    spec:
+      imagePullSecrets:
+      - name: dockerhub-secret
+      containers:
+      - name: smsc
+        image: {{ .Values.images.smsc | quote }}
+        imagePullPolicy: IfNotPresent
+
+        # Pull global variables (MCC, MNC, MYSQL_IP)
+        envFrom:
+        - configMapRef:
+            name: core-env
+
+        env:
+        - name: COMPONENT_NAME
+          value: {{ .Values.workloadEnv.smsc.COMPONENT_NAME | quote }}
+        - name: SMSC_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+
+        ports:
+        # SIP TCP/UDP
+        - name: sip-tcp
+          containerPort: 7090
+          protocol: TCP
+        - name: sip-udp
+          containerPort: 7090
+          protocol: UDP
+
+        volumeMounts:
+        - name: smsc-config
+          mountPath: /mnt/smsc
+          readOnly: true
+        - name: log-volume
+          mountPath: /niralos/install/var/log/niralos
+        - name: core-dump
+          mountPath: /mnt/core_dump
+
+      volumes:
+      - name: smsc-config
+        configMap:
+          name: smsc-config
+          defaultMode: 0755
+      - name: log-volume
+        emptyDir: {}
+      - name: core-dump
+        emptyDir: {}
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-data
+  annotations:
+    helm.sh/resource-policy: keep
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ (index .Values.storage.pvcs "minio-data").storageClass }}
+  resources:
+    requests:
+      storage: {{ (index .Values.storage.pvcs "minio-data").size }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicas.minio }}
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      serviceAccountName: niralos-k8s-reader
+      imagePullSecrets:
+        - name: dockerhub-secret
+      containers:
+        - name: minio
+          image: {{ .Values.images.minio | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /usr/bin/minio
+            - server
+            - /data
+            - --console-address
+            - ":9001"
+          ports:
+            - name: api
+              containerPort: 9000
+              hostPort: 9000
+            - name: console
+              containerPort: 9001
+              hostPort: 9001
+          env:
+            - name: MINIO_ROOT_USER
+              value: {{ .Values.workloadEnv.minio.MINIO_ROOT_USER | quote }}
+            - name: MINIO_ROOT_PASSWORD
+              value: {{ .Values.secrets.minio.rootPassword | quote }}
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data
+      volumes:
+        - name: minio-data
+          persistentVolumeClaim:
+            claimName: minio-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: NodePort
+  selector:
+    app: minio
+  ports:
+    - name: api
+      port: 9000
+      targetPort: 9000
+      nodePort: 30900
+    - name: console
+      port: 9001
+      targetPort: 9001
+      nodePort: 30901
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: mongo
+  ports:
+    - name: mongodb
+      port: 27017
+      targetPort: 27017
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: {{ .Release.Namespace }}
+spec:
+  serviceName: mongo
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+
+  replicas: {{ .Values.replicas.mongo }}
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongo
+          image: {{ .Values.images.mongo | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - mongod
+            - --bind_ip
+            - 0.0.0.0
+          ports:
+            - containerPort: 27017
+              hostPort: 27017
+              name: mongodb
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+            - name: mongodb-config
+              mountPath: /data/configdb
+          readinessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 27017
+            initialDelaySeconds: 30
+            periodSeconds: 20
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ (index .Values.storage.pvcs "mongodb-data").storageClass }}
+        resources:
+          requests:
+            storage: {{ (index .Values.storage.pvcs "mongodb-data").size }}
+    - metadata:
+        name: mongodb-config
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ (index .Values.storage.pvcs "mongodb-config").storageClass }}
+        resources:
+          requests:
+            storage: {{ (index .Values.storage.pvcs "mongodb-config").size }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-script
+  namespace: {{ .Release.Namespace }}
+data:
+  mysql-init.sh: |
+    #!/bin/bash
+    set -e
+
+    if [ -d /var/lib/mysql/mysql ]; then
+      echo "Existing MySQL data directory found. Skipping initialization."
+      chown -R mysql:mysql /var/lib/mysql
+      exit 0
+    fi
+
+    echo "No existing MySQL data directory found. Initializing fresh datadir..."
+    chown -R mysql:mysql /var/lib/mysql
+    mysqld --initialize-insecure --user=mysql --datadir=/var/lib/mysql
+
+    echo "Starting mysqld temporarily (local socket only) to create users..."
+    mysqld --user=mysql --datadir=/var/lib/mysql       --skip-networking       --socket=/tmp/init.sock       --pid-file=/tmp/init.pid &
+
+    for i in $(seq 1 30); do
+      if mysqladmin --socket=/tmp/init.sock -uroot ping --silent 2>/dev/null; then
+        break
+      fi
+      sleep 1
+    done
+
+    echo "Creating application users and setting root passwords..."
+    mysql --socket=/tmp/init.sock -uroot <<-EOSQL
+      ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ .Values.secrets.mysql.rootPassword }}';
+      CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED WITH mysql_native_password BY '{{ .Values.secrets.mysql.rootPassword }}';
+      GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+      FLUSH PRIVILEGES;
+    EOSQL
+
+    echo "Shutting down temporary mysqld..."
+    mysqladmin --socket=/tmp/init.sock -uroot -p{{ .Values.secrets.mysql.rootPassword }} shutdown
+
+    for i in $(seq 1 30); do
+      if [ ! -f /tmp/init.pid ]; then
+        break
+      fi
+      sleep 1
+    done
+
+    echo "Initialization complete."
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: mysql
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+      nodePort: 30306
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: {{ .Release.Namespace }}
+spec:
+  serviceName: mysql
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+
+  replicas: {{ .Values.replicas.mysql }}
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-secret
+      initContainers:
+        - name: mysql-init-check
+          image: {{ .Values.images.mysql | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - /scripts/mysql-init.sh
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+            - name: init-script
+              mountPath: /scripts
+      containers:
+        - name: mysql
+          image: {{ .Values.images.mysql | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3306
+              hostPort: 3306
+              name: mysql
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+          readinessProbe:
+            exec:
+              command:
+                - bash
+                - -c
+                - mysqladmin ping -uroot -pims --silent
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            exec:
+              command:
+                - bash
+                - -c
+                - mysqladmin ping -uroot -pims --silent
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+      volumes:
+        - name: init-script
+          configMap:
+            name: mysql-init-script
+            defaultMode: 0755
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ (index .Values.storage.pvcs "mysql-data").storageClass }}
+        resources:
+          requests:
+            storage: {{ (index .Values.storage.pvcs "mysql-data").size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  annotations:
+    helm.sh/resource-policy: keep
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ (index .Values.storage.pvcs "postgres-data").storageClass }}
+  resources:
+    requests:
+      storage: {{ (index .Values.storage.pvcs "postgres-data").size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicas.postgres }}
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.images.postgres | quote }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.workloadEnv.postgres.POSTGRES_DB | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.workloadEnv.postgres.POSTGRES_USER | quote }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.secrets.postgres.password | quote }}
+          ports:
+            - containerPort: 5432
+              name: postgres
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "keycloak"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "keycloak"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: timescaledb
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescaledb
+  namespace: {{ .Release.Namespace }}
+spec:
+  serviceName: timescaledb
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+
+  replicas: {{ .Values.replicas.timescaledb }}
+  selector:
+    matchLabels:
+      app: timescaledb
+  template:
+    metadata:
+      labels:
+        app: timescaledb
+    spec:
+      containers:
+        - name: timescaledb
+          image: {{ .Values.images.timescaledb | quote }}
+          imagePullPolicy: IfNotPresent
+          args:
+           - postgres
+           - -c
+           - max_connections=200
+          env:
+            - name: POSTGRES_USER
+              value: {{ .Values.workloadEnv.timescaledb.POSTGRES_USER | quote }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.secrets.timescaledb.password | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.workloadEnv.timescaledb.POSTGRES_DB | quote }}
+          ports:
+            - containerPort: 5432
+              hostPort: 5432
+              name: postgres
+          volumeMounts:
+            - name: timescaledb-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - timescale_user
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - timescale_user
+            initialDelaySeconds: 30
+            periodSeconds: 20
+  volumeClaimTemplates:
+    - metadata:
+        name: timescaledb-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ (index .Values.storage.pvcs "timescaledb-data").storageClass }}
+        resources:
+          requests:
+            storage: {{ (index .Values.storage.pvcs "timescaledb-data").size }}
+---
+# ============================================================
+# Keycloak PersistentVolumeClaim
+# ============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-data
+  annotations:
+    helm.sh/resource-policy: keep
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ (index .Values.storage.pvcs "keycloak-data").storageClass }}
+  resources:
+    requests:
+      storage: {{ (index .Values.storage.pvcs "keycloak-data").size }}
+
+---
+# ============================================================
+# Keycloak Deployment
+# ============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicas.keycloak }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      serviceAccountName: niralos-k8s-reader
+      imagePullSecrets:
+        - name: dockerhub-secret
+      
+      # ADD THIS
+      initContainers:
+        - name: initialize-keycloak-data
+          image: {{ .Values.images.keycloak | quote }}
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - /bin/sh
+            - -c
+            - |
+              if [ -z "$(ls -A /keycloak-data 2>/dev/null)" ]; then
+                echo "Keycloak PVC is empty."
+                echo "Copying initial Keycloak data from image..."
+                cp -a /opt/keycloak/data/. /keycloak-data/
+                echo "Keycloak data copied successfully."
+              else
+                echo "Keycloak PVC already contains data."
+                echo "Skipping initial data copy."
+              fi
+          volumeMounts:
+            - name: keycloak-data
+              mountPath: /keycloak-data
+      containers:
+        - name: keycloak
+          image: {{ .Values.images.keycloak | quote }}
+          imagePullPolicy: IfNotPresent
+
+          # command:
+          #   - /opt/keycloak/bin/kc.sh
+
+          args:
+            - start-dev
+            - --import-realm
+
+          env:
+            # PostgreSQL
+            - name: KC_DB
+              value: {{ .Values.workloadEnv.keycloak.KC_DB | quote }}
+
+            - name: KC_DB_URL_HOST
+              value: {{ .Values.workloadEnv.keycloak.KC_DB_URL_HOST | quote }}
+
+            - name: KC_DB_URL_DATABASE
+              value: {{ .Values.workloadEnv.keycloak.KC_DB_URL_DATABASE | quote }}
+
+            - name: KC_DB_USERNAME
+              value: {{ .Values.workloadEnv.keycloak.KC_DB_USERNAME | quote }}
+
+            - name: KC_DB_PASSWORD
+              value: {{ .Values.secrets.keycloak.dbPassword | quote }}
+
+            # Bootstrap Admin
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              value: {{ .Values.workloadEnv.keycloak.KC_BOOTSTRAP_ADMIN_USERNAME | quote }}
+
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              value: {{ .Values.secrets.keycloak.bootstrapAdminPassword | quote }}
+
+            # Super Admin
+            - name: SUPER_ADMIN_EMAIL
+              value: {{ .Values.workloadEnv.keycloak.SUPER_ADMIN_EMAIL | quote }}
+
+            - name: SUPER_ADMIN_PASSWORD
+              value: {{ .Values.secrets.keycloak.superAdminPassword | quote }}
+
+            - name: SUPER_ADMIN_FIRST_NAME
+              value: {{ .Values.workloadEnv.keycloak.SUPER_ADMIN_FIRST_NAME | quote }}
+
+            - name: SUPER_ADMIN_LAST_NAME
+              value: {{ .Values.workloadEnv.keycloak.SUPER_ADMIN_LAST_NAME | quote }}
+
+            - name: SUPER_ADMIN_CORPORATE_ID_NUMBER
+              value: {{ .Values.workloadEnv.keycloak.SUPER_ADMIN_CORPORATE_ID_NUMBER | quote }}
+
+            - name: SUPER_ADMIN_DOB
+              value: {{ .Values.workloadEnv.keycloak.SUPER_ADMIN_DOB | quote }}
+
+            - name: SUPER_ADMIN_PHONE_NUMBER
+              value: {{ .Values.workloadEnv.keycloak.SUPER_ADMIN_PHONE_NUMBER | quote }}
+
+            # HTTP
+            - name: KC_HTTP_ENABLED
+              value: {{ .Values.workloadEnv.keycloak.KC_HTTP_ENABLED | quote }}
+
+            - name: KC_HOSTNAME_STRICT
+              value: {{ .Values.workloadEnv.keycloak.KC_HOSTNAME_STRICT | quote }}
+
+          ports:
+            - name: http
+              containerPort: 8080
+              hostPort: 8085
+
+          volumeMounts:
+            - name: keycloak-data
+              mountPath: /opt/keycloak/data
+
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+      volumes:
+        - name: keycloak-data
+          persistentVolumeClaim:
+            claimName: keycloak-data
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: niralos-sdn-backup-script
+  namespace: {{ .Release.Namespace }}
+data:
+  backup_timescale.sh: |
+    #!/bin/bash
+      ################################################################################
+      # TimescaleDB TRUE Incremental Backup Script (Timestamp-based)
+      # Safe for high-frequency inserts (every few seconds)
+      ################################################################################
+
+      set -euo pipefail
+
+      # ----------------------------- Configuration ----------------------------------
+      DB_HOST="${DB_HOST:-timescaledb}"
+      DB_PORT="${DB_PORT:-5432}"
+      DB_NAME="${DB_NAME:-timescale_db}"
+      DB_USER="${DB_USER:-timescale_user}"
+      DB_PASSWORD="${DB_PASSWORD:-{{ .Values.secrets.timescaledb.password }}}"
+
+      BACKUP_ROOT="${BACKUP_ROOT:-/backups/timescale}"
+
+      # ------------------------------- Colors ---------------------------------------
+      RED='\033[0;31m'
+      GREEN='\033[0;32m'
+      YELLOW='\033[1;33m'
+      BLUE='\033[0;34m'
+      NC='\033[0m'
+
+      # ------------------------------- Logging --------------------------------------
+      log() {
+          local level="$1"; shift
+          local msg="$*"
+          local ts
+          ts=$(date '+%Y-%m-%d %H:%M:%S')
+
+          case "$level" in
+              INFO)    echo -e "${BLUE}[INFO]${NC}    $ts - $msg" ;;
+              SUCCESS) echo -e "${GREEN}[SUCCESS]${NC} $ts - $msg" ;;
+              WARN)    echo -e "${YELLOW}[WARN]${NC}    $ts - $msg" ;;
+              ERROR)   echo -e "${RED}[ERROR]${NC}   $ts - $msg" ;;
+          esac
+      }
+
+      # ----------------------------- SQL Helper -------------------------------------
+      exec_sql() {
+          PGPASSWORD="$DB_PASSWORD" psql \
+              -h "$DB_HOST" \
+              -p "$DB_PORT" \
+              -U "$DB_USER" \
+              -d "$DB_NAME" \
+              -t -A -q \
+              -c "$1"
+      }
+      backup_metadata_full() {
+
+          local table="$1"
+
+          log INFO "Starting FULL backup for $table"
+
+          year=$(date +%Y)
+          month=$(date +%m)
+          day=$(date +%Y-%m-%d)
+          time=$(date +%H-%M-%S)
+
+          target_dir="$BACKUP_ROOT/$table/$year/$month"
+          mkdir -p "$target_dir"
+
+          backup_file="$target_dir/${table}_${day}_${time}.csv.gz"
+
+          log INFO "Writing FULL backup file: $(basename "$backup_file")"
+
+          PGPASSWORD="$DB_PASSWORD" psql \
+              -h "$DB_HOST" \
+              -p "$DB_PORT" \
+              -U "$DB_USER" \
+              -d "$DB_NAME" \
+              -q \
+              -c "\copy public.$table TO STDOUT WITH CSV HEADER" \
+          | gzip > "$backup_file"
+
+          row_count=$(zcat "$backup_file" | tail -n +2 | wc -l | tr -d ' ')
+          row_count=$((row_count + 0))
+
+          if [[ $row_count -eq 0 ]]; then
+              log WARN "No rows written for $table"
+              rm -f "$backup_file"
+              return
+          fi
+
+          log SUCCESS "Backed up $row_count rows for $table (FULL)"
+      }
+
+      get_last_backup_time() {
+          exec_sql "
+              SELECT COALESCE(
+                  to_char(
+                      NULLIF(last_backup_time::text, '')::timestamptz AT TIME ZONE 'UTC',
+                      'YYYY-MM-DD HH24:MI:SS'
+                  ),
+                  '1970-01-01 00:00:00'
+              )
+              FROM backup_metadata
+              WHERE db_type='timescale'
+                AND entity_name='$1';
+          "
+      }
+
+
+      get_max_timestamp() {
+          exec_sql "
+              SELECT COALESCE(
+                  to_char(
+                      MAX($2::timestamptz) AT TIME ZONE 'UTC',
+                      'YYYY-MM-DD HH24:MI:SS'
+                  ),
+                  '1970-01-01 00:00:00'
+              )
+              FROM public.$1;
+          "
+      }
+
+
+      # ------------------------ Timestamp Column Helper -----------------------------
+      get_timestamp_column() {
+          exec_sql "
+              SELECT timestamp_column
+              FROM backup_metadata
+              WHERE db_type='timescale'
+                AND entity_name='$1';
+          "
+      }
+
+      set_backup_status() {
+          exec_sql "
+              UPDATE backup_metadata
+              SET backup_status='$2', updated_at=NOW()
+              WHERE db_type='timescale'
+                AND entity_name='$1';
+          "
+      }
+
+      update_backup_metadata() {
+          exec_sql "
+              UPDATE backup_metadata
+              SET last_backup_time='$2',
+                  backup_status='completed',
+                  last_backup_path='$3',
+                  total_rows_backed_up = total_rows_backed_up + $4,
+                  updated_at=NOW()
+              WHERE db_type='timescale'
+                AND entity_name='$1';
+          "
+      }
+
+      get_effective_timestamp_column() {
+          local table="$1"
+
+          # Check for `timestamp`
+          local col
+          col=$(exec_sql "
+              SELECT column_name
+              FROM information_schema.columns
+              WHERE table_schema='public'
+                AND table_name='$table'
+                AND column_name='timestamp';
+          ")
+
+          if [[ -n "$col" ]]; then
+              echo "timestamp"
+              return
+          fi
+
+          # Check for `time_stamp`
+          col=$(exec_sql "
+              SELECT column_name
+              FROM information_schema.columns
+              WHERE table_schema='public'
+                AND table_name='$table'
+                AND column_name='time_stamp';
+          ")
+
+
+          if [[ -n "$col" ]]; then
+              echo "time_stamp"
+              return
+          fi
+
+
+      # ✅ NEW: Check for `date_time`
+          col=$(exec_sql "
+              SELECT column_name
+              FROM information_schema.columns
+              WHERE table_schema='public'
+                AND table_name='$table'
+                AND column_name='date_time';
+          ")
+
+          if [[ -n "$col" ]]; then
+              echo "date_time"
+              return
+          fi
+
+          log ERROR "No timestamp column found for table '$table' (expected timestamp or time_stamp)"
+          exit 1
+      }
+
+      # -------------------- Incremental Backup (Timestamp Range) --------------------
+      backup_table_incremental() {
+
+          local table="$1"
+
+          if [[ "$table" == "backup_metadata" ]]; then
+              backup_metadata_full "$table"
+              return
+          fi
+          log INFO "Starting incremental backup for $table"
+          set_backup_status "$table" "in_progress"
+
+          # Get the effective timestamp column for this table
+          local ts_column
+          ts_column=$(get_effective_timestamp_column "$table")
+          log INFO "Using timestamp column: $ts_column"
+
+          local last_ts max_ts
+          last_ts=$(get_last_backup_time "$table")
+          [[ -z "$last_ts" ]] && last_ts="1970-01-01 00:00:00"
+          max_ts=$(get_max_timestamp "$table" "$ts_column")
+
+          log INFO "Last backup time: $last_ts"
+          log INFO "Max timestamp:     $max_ts"
+
+          if [[ "$last_ts" == "$max_ts" ]]; then
+              log INFO "No new data for $table"
+              set_backup_status "$table" "completed"
+              return
+          fi
+
+          # Derive date parts from max_ts
+          year=$(date -d "$max_ts" +%Y)
+          month=$(date -d "$max_ts" +%m)
+          day=$(date -d "$max_ts" +%Y-%m-%d)
+          time=$(date -d "$max_ts" +%H-%M-%S)
+
+          target_dir="$BACKUP_ROOT/$table/$year/$month"
+          mkdir -p "$target_dir"
+
+      #    backup_file="$target_dir/${table}_${day}_${time}.csv"
+      backup_file="$target_dir/${table}_${day}_${time}.csv.gz"
+
+          log INFO "Writing backup file: $(basename "$backup_file")"
+
+      PGPASSWORD="$DB_PASSWORD" psql \
+          -h "$DB_HOST" \
+          -p "$DB_PORT" \
+          -U "$DB_USER" \
+          -d "$DB_NAME" \
+          -q \
+          -c "\copy (
+              SELECT *
+              FROM public.$table
+              WHERE $ts_column > '$last_ts'
+                AND $ts_column <= '$max_ts'
+              ORDER BY $ts_column
+          ) TO STDOUT WITH CSV HEADER" \
+      | gzip > "$backup_file"
+
+      #    row_count=$(tail -n +2 "$backup_file" | wc -l | tr -d ' ')
+      row_count=$(zcat "$backup_file" | tail -n +2 | wc -l | tr -d ' ')
+          row_count=$((row_count + 0))
+
+          if [[ $row_count -eq 0 ]]; then
+              log WARN "No rows written for $table"
+              rm -f "$backup_file"
+              set_backup_status "$table" "completed"
+              return
+          fi
+
+          update_backup_metadata "$table" "$max_ts" "$target_dir" "$row_count"
+          log SUCCESS "Backed up $row_count rows for $table"
+      }
+
+      # ------------------------- Backup All Tables ----------------------------------
+      backup_all_tables() {
+          log INFO "Starting backup for all tables"
+
+          tables=$(exec_sql "
+              SELECT entity_name
+              FROM backup_metadata
+              WHERE db_type='timescale';
+          ")
+
+
+          for t in $tables; do
+          if ! backup_table_incremental "$t"; then
+              log WARN "Skipping failed table: $t"
+          fi
+          echo
+      done
+
+          log SUCCESS "All backups completed"
+      }
+
+      # ------------------------------- Main -----------------------------------------
+      usage() {
+          echo "Usage:"
+          echo "  $0 backup <table>"
+          echo "  $0 backup-all"
+      }
+
+      main() {
+          case "${1:-}" in
+              backup)
+                  [[ -z "${2:-}" ]] && usage && exit 1
+                  backup_table_incremental "$2"
+                  ;;
+              backup-all)
+                  backup_all_tables
+                  ;;
+              *)
+                  usage
+                  ;;
+          esac
+      }
+    main "$@"
+---
+# Install.uuid in PersistentVolumeClaim to persist across pod restarts
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: niralos-config-data
+  annotations:
+    helm.sh/resource-policy: keep
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ (index .Values.storage.pvcs "niralos-config-data").storageClass }}
+  resources:
+    requests:
+      storage: {{ (index .Values.storage.pvcs "niralos-config-data").size }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: niralos-sdn-application-config
+  namespace: {{ .Release.Namespace }}
+data:
+  application.properties: |
+    server.port=8082
+
+    # Allow multiple origins
+    cors.allowed-origins=http://192.168.0.17:30000,http://localhost:30000,http://127.0.0.1:30000,http://192.168.0.17:8082
+
+    # Mysql Configuration
+    # Spring JPA
+    # MySQL
+    spring.datasource.mysql.jdbc-url=jdbc:mysql://mysql:3306/backend_db?allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    spring.datasource.mysql.username=root
+    spring.datasource.mysql.password={{ .Values.secrets.mysql.rootPassword }}
+    spring.datasource.mysql.driver-class-name=com.mysql.cj.jdbc.Driver
+
+    # PostgreSQL Timescale
+    spring.datasource.timescale.jdbc-url=jdbc:postgresql://timescaledb:5432/timescale_db
+    spring.datasource.timescale.username={{ .Values.secrets.timescaledb.username }}
+    spring.datasource.timescale.password={{ .Values.secrets.timescaledb.password }}
+    spring.datasource.timescale.driver-class-name=org.postgresql.Driver
+
+    # Mongo Database Configuration
+    spring.data.mongodb.uri=mongodb://mongo:27017/niralos
+
+    # Hibernate Configuration
+    spring.jpa.hibernate.ddl-auto=update
+    spring.jpa.show-sql=false
+    spring.jpa.properties.hibernate.format_sql=true
+    spring.thymeleaf.check-template-location=false
+    spring.jpa.open-in-view=false
+    spring.datasource.tomcat.test-while-idle=true
+    spring.datasource.tomcat.time-between-eviction-runs-millis=1800000
+    spring.datasource.tomcat.validation-query=SELECT 1
+
+    # Enable Swagger UI
+    springfox.documentation.swagger-ui.enabled=true
+    spring.mvc.pathmatch.matching-strategy=ANT_PATH_MATCHER
+
+    # Jwt Configuration
+    jwt.expirationDateInMs=24000000
+    jwt.refreshExpirationDateInMs=26297460
+    jwt.secret={{ .Values.secrets.sdn.jwtSecret }}
+    spring.datasource.initialization-mode=always
+
+    # Wireshark Agent
+    WireShark.Agent.IP=192.168.0.17
+    WireShark.Agent.PORT=8056
+
+    # Wireshark Controller
+    WireShark.Controller.IP=192.168.0.17
+    WireShark.Controller.Port=8082
+
+    # File size configuration
+    spring.servlet.multipart.enabled=true
+    spring.servlet.multipart.max-file-size=25GB
+    spring.servlet.multipart.max-request-size=25GB
+
+    # Docker engine API communication
+    docker.engine.ip=192.168.0.17
+    docker.engine.port=2375
+    docker.engine.api.version=v1.46
+
+    # VM credentials
+    vm.username={{ .Values.secrets.sdn.vmUsername }}
+    vm.password={{ .Values.secrets.sdn.vmPassword }}
+
+    # Non Docker UPF communication
+    upf.data.fetch.mode=interface
+    upf.ip.list=localhost
+    upf.port=9090
+
+    # vonR IP and Port Configuration
+    fivegcore.vonr.ipconfiguration=192.168.0.17
+    fivegcore.vonr.portconfiguration=30084
+
+    # Spring Boot Thymeleaf
+    spring.thymeleaf.prefix=classpath:/templates/
+    spring.thymeleaf.suffix=.html
+    spring.thymeleaf.mode=HTML
+    spring.thymeleaf.encoding=UTF-8
+    spring.thymeleaf.cache=false
+
+    # Spring Boot Thymeleaf Login Portal
+    api.base.ip=localhost
+    api.base.port=8082
+
+    # NWDAF IP and Port
+    nef.ip=localhost
+    nef.port=29599
+
+    # DHCP configuration
+    smf.config.file.path=/home/user/Downloads/smf.yaml
+    upf.config.file.path=/home/user/Downloads/upf.yaml
+    dscp.script.file.path=/home/user/niralos-docker-build-deploy-staging/interface_swap.sh
+
+    scheduler.callExternalApi.enabled=true
+
+    # 5G CORE API protocol
+    fivegcoreProtocol=http://
+
+    # Keycloak URLs
+    spring.security.oauth2.resourceserver.jwt.issuer-uri=http://192.168.0.17:8085/realms/master
+
+    # Keycloak realm and client
+    keycloak.realm=master
+    keycloak.resource=niralos-edge-client
+
+    # Keycloak server
+    keycloak.server-url=http://192.168.0.17:8085
+    keycloak.admin-username={{ .Values.secrets.keycloak.bootstrapAdminUsername }}
+    keycloak.admin-password={{ .Values.secrets.keycloak.bootstrapAdminPassword }}
+
+    # Minio
+    minio.endpoint=http://192.168.0.17:9000
+    minio.access-key={{ .Values.secrets.minio.rootUser }}
+    minio.secret-key={{ .Values.secrets.minio.rootPassword }}
+    minio.bucket-name=sdn-profile-images
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: niralos-sdn-env-config
+  namespace: {{ .Release.Namespace }}
+data:
+  env.js: |
+    window.env = {
+      "REACT_APP_BACKEND_IP":"http://192.168.0.17:30082",
+      "REACT_APP_CONTAINER_IP":"http://localhost:8080",
+      "REACT_APP_EDGE_IP":"192.168.0.123",
+      "REACT_APP_EXTERNAL_IP":"http://localhost",
+      "REACT_APP_EXTERNAL_PORT":"3002",
+      "REACT_APP_EDGE_ENABLED":false,
+      "REACT_APP_OPEN_MAP_IP":"http://localhost:3000/",
+      "REACT_APP_AI_IP":"http://192.168.0.180:5000/"
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: niralos-sdn
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: niralos-sdn
+  ports:
+    - name: api
+      port: 8082
+      targetPort: 8082
+      nodePort: 30082
+    - name: ui
+      port: 3000
+      targetPort: 3000
+      nodePort: 30000
+  type: NodePort
+
+---
+# ==========================================
+# ServiceAccount for Niralos SDN
+# ==========================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: niralos-k8s-reader
+  namespace: {{ .Release.Namespace }}
+---
+# ==========================================
+# Allow Spring Boot to read Pods
+# in the niralos namespace
+# ==========================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: niralos-k8s-pod-reader
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+      # NEW: Kubernetes Metrics API permissions
+  - apiGroups:
+      - metrics.k8s.io
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+# ==========================================
+# Connect ServiceAccount to Role
+# ==========================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: niralos-k8s-pod-reader-binding
+  namespace: {{ .Release.Namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: niralos-k8s-reader
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: niralos-k8s-pod-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: niralos-sdn
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: niralos-sdn
+spec:
+  replicas: {{ .Values.replicas.sdn }}
+  selector:
+    matchLabels:
+      app: niralos-sdn
+  template:
+    metadata:
+      labels:
+        app: niralos-sdn
+    spec:
+      serviceAccountName: niralos-k8s-reader
+      imagePullSecrets:
+        - name: dockerhub-secret
+      initContainers:
+        - name: wait-for-dependencies
+          image: busybox:1.36
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              echo "======================================"
+              echo "Waiting for Niralos dependencies..."
+              echo "======================================"
+
+              echo "Waiting for MySQL..."
+              until nc -z mysql 3306; do
+                echo "MySQL is not ready..."
+                sleep 2
+              done
+              echo "MySQL is ready."
+
+              echo "Waiting for MongoDB..."
+              until nc -z mongo 27017; do
+                echo "MongoDB is not ready..."
+                sleep 2
+              done
+              echo "MongoDB is ready."
+
+              echo "Waiting for PostgreSQL..."
+              until nc -z postgres 5432; do
+                echo "PostgreSQL is not ready..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready."
+
+              echo "Waiting for TimescaleDB..."
+              until nc -z timescaledb 5432; do
+                echo "TimescaleDB is not ready..."
+                sleep 2
+              done
+              echo "TimescaleDB is ready."
+
+              echo "Waiting for MinIO..."
+              until nc -z minio 9000; do
+                echo "MinIO is not ready..."
+                sleep 2
+              done
+              echo "MinIO is ready."
+
+              echo "Waiting for Keycloak..."
+              until nc -z 192.168.2.1 8085; do
+                echo "Keycloak is not ready..."
+                sleep 2
+              done
+              echo "Keycloak is ready."
+
+              echo "======================================"
+              echo "All dependencies are ready."
+              echo "Starting Niralos SDN..."
+              echo "======================================" 
+              
+              
+      containers:
+        - name: controller
+          image: {{ .Values.images.sdn | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+              name: api
+            - containerPort: 3000
+              name: ui
+          volumeMounts:
+            - name: sdn-application-config
+              mountPath: /niral_config/configuration/niralos-sdn/application.properties
+              subPath: application.properties
+              readOnly: true
+
+            - name: sdn-env-config
+              mountPath: /binary/build/env.js
+              subPath: env.js
+              readOnly: true
+
+            - name: niral-logs
+              mountPath: /app/logs
+            # Install.uuid in PersistentVolumeClaim to persist across pod restarts
+            - name: niralos-config-data
+              mountPath: /niral_config
+
+            - name: backup-script
+              mountPath: /usr/local/bin/backup_timescale.sh
+              subPath: backup_timescale.sh
+              readOnly: true
+
+            - name: machine-id
+              mountPath: /etc/machine-id
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /v2/health/localsdn
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /v2/health/localsdn
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+      volumes:
+      - name: sdn-application-config
+        configMap:
+          name: niralos-sdn-application-config
+
+      - name: sdn-env-config
+        configMap:
+          name: niralos-sdn-env-config
+
+      # Install.uuid in PersistentVolumeClaim to persist across pod restarts
+      - name: niralos-config-data
+        persistentVolumeClaim:
+          claimName: niralos-config-data    
+
+      - name: niral-logs
+        hostPath:
+          path: {{ (index .Values.storage.hostPaths "niralos-sdn.niral-logs").path }}
+          type: {{ (index .Values.storage.hostPaths "niralos-sdn.niral-logs").type }}
+
+      - name: backup-script
+        configMap:
+          name: niralos-sdn-backup-script
+          defaultMode: 0755
+
+      - name: machine-id
+        hostPath:
+          path: {{ (index .Values.storage.hostPaths "niralos-sdn.machine-id").path }}
+          type: {{ (index .Values.storage.hostPaths "niralos-sdn.machine-id").type }}

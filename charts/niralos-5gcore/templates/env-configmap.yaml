@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: core-env
+  namespace: niralos
+
+data:
+  MCC: "001"
+  MNC: "01"
+  TIMESCALEDB_IP: "timescaledb"
+  PCRF_IP: "172.22.0.50"
+  PCSCF_IP: "pcscf-service"
+
+  # DNS Configuration
+  SMF_DNS1: "8.8.8.8"
+  SMF_DNS2: "8.8.4.4"
+
+  # UE Address Pools
+  UE_IPV4_INTERNET: "10.101.0.0/16"
+  UE_IPV4_IMS: "10.102.0.0/16"
+
+  # Deployment Mode
+  DEPLOY_MODE: "5G"
+
+  # Diameter
+  PCRF_BIND_PORT: "3868"
+  LD_LIBRARY_PATH: "/niralos/install/lib/x86_64-linux-gnu"
+
+  # General
+  MAX_NUM_UE: "1024"
+
+  CORE_PATTERN: "/mnt/core_dump/core.%e.%p.%t"
+   # =====================================================
+  # IMS / I-CSCF
+  # =====================================================
+
+  ICSCF_BIND_PORT: "3869"
+  PYHSS_BIND_PORT: "3868"
+    # =====================================================
+  # IMS / I-CSCF
+  # =====================================================
+
+  ICSCF_BIND_PORT: "3869"
+  PYHSS_BIND_PORT: "3868"
+
+  # =====================================================
+  # MySQL
+  # =====================================================
+
+  MYSQL_IP: "mysql"
+  MYSQL_PORT: "3306"
+
+  SITE_ID: "Bangalore"
+  SITE_ID_CORE: "4f010fed-0edb-4376-9519-b71045b86b3e"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#apiVersion: v1
+#kind: ConfigMap
+
+#metadata:
+#  name: core-env
+#  namespace: {{ .Release.Namespace }}
+
+#data:
+#  MCC: {{ .Values.coreNetwork.plmn.mcc | quote }}
+#  MNC: {{ .Values.coreNetwork.plmn.mnc | quote }}
+#{{- range $key, $value := .Values.coreEnv }}
+#  {{ $key }}: {{ $value | quote }}
+#{{- end }}

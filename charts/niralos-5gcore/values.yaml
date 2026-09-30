@@ -1,0 +1,940 @@
+# ==============================================================================
+# GLOBAL SETTINGS
+# Image pull secrets and global Kubernetes settings
+# ==============================================================================
+global:
+  imagePullSecrets:
+  - name: dockerhub-secret
+
+# ==============================================================================
+# 5G CORE NETWORK
+# PLMN, TAC, and network slice configuration
+# ==============================================================================
+coreNetwork:
+  # PLMN identity (MCC/MNC)
+  plmn:
+    mcc: '001'
+    mnc: '01'
+  # Tracking Area configuration
+  tai:
+    tac: 1
+  # Supported network slices
+  slices:
+  - sst: 1
+    sd: '000001'
+  - sst: 1
+    sd: '000002'
+  # NSSF slice configuration
+  nssfSlices:
+  - sst: 1
+    sd: '000001'
+  - sst: 1
+    sd: '000002'
+
+# ==============================================================================
+# NETWORKING / MULTUS
+# macvlan configuration and secondary network attachments
+# ==============================================================================
+networking:
+  # macvlan interface settings
+  macvlan:
+    master: enp6s19
+    mode: bridge
+  # Multus network attachments
+  attachments:
+    upf:
+      enabled: true
+      name: macvlan-conf
+      ips: 192.168.0.75/16
+    n3iwf:
+      enabled: true
+      name: macvlan-conf
+      ips: 192.168.0.79/16
+
+# ==============================================================================
+# CONTAINER IMAGES
+# Images used by NiralOS and supporting components
+# ==============================================================================
+images:
+  nrf: niralnetworks/niralos-5g-core:3.0.8.0-beta
+  scp: niralnetworks/niralos-5g-core:3.0.8.0-beta
+  amf: niralnetworks/niralos-5g-core:3.0.8.0-beta
+  ausf: niralnetworks/niralos-5g-core:3.0.8.0-beta
+  udr: niralnetworks/niralos-5g-core:3.0.8.0-beta
+  udm: niralnetworks/niralos-5g-core:3.0.8.0-beta
+  pcf: niralnetworks/niralos-5g-core:3.0.8.0-beta
+  bsf: niralnetworks/niralos-5g-core:3.0.8.0-beta
+  nssf: niralnetworks/niralos-5g-core:3.0.8.0-beta
+  smf: niralnetworks/niralos-5g-core:3.0.8.0-beta
+  upf: niralnetworks/niralos-5g-core:3.0.8.0-beta
+  chf: niralnetworks/niralos-nfs:chf-new-WPITS
+  nwdaf: niralnetworks/niralos-nfs:3.0.4.3-notls
+  nef: niralnetworks/niralos-nfs:3.0.4.3-notls
+  n3iwf: niralnetworks/niralos-n3iwf:2.7.2.2
+  rtpengine: niralnetworks/niralos-rtp-engine:2.3.1-alpha
+  dns: niralnetworks/niralos-dns:2.2.5
+  scscf: niralnetworks/niralos-ims:3.0.7.1-alpha
+  icscf: niralnetworks/niralos-ims:3.0.7.1-alpha
+  pcscf: niralnetworks/niralos-ims:3.0.7.1-alpha
+  pyhss: niralnetworks/niralos-hss:2.2.5
+  smsc: niralnetworks/niralos-ims:3.0.7.1-alpha
+  minio: niralnetworks/niralos-minio:v2.5
+  mongo: mongo:6.0
+  mysql: niralnetworks/niralos-mysql:3.0.1
+  postgres: postgres:15
+  timescaledb: timescale/timescaledb:latest-pg14
+  keycloak: niralnetworks/niralos-keycloak-sdn:3.0.9
+  sdn: niralnetworks/niralos-local-sdn:NIGHTLY_2026-09-16_04-00-04
+
+# ==============================================================================
+# REPLICA COUNTS
+# Number of Kubernetes replicas for each component
+# ==============================================================================
+replicas:
+  nrf: 1
+  scp: 1
+  amf: 1
+  ausf: 1
+  udr: 1
+  udm: 1
+  pcf: 1
+  bsf: 1
+  nssf: 1
+  smf: 1
+  upf: 1
+  chf: 1
+  nwdaf: 1
+  nef: 1
+  n3iwf: 1
+  rtpengine: 1
+  dns: 1
+  scscf: 1
+  icscf: 1
+  pcscf: 1
+  pyhss: 1
+  smsc: 1
+  minio: 1
+  mongo: 1
+  mysql: 1
+  postgres: 1
+  timescaledb: 1
+  keycloak: 1
+  sdn: 1
+
+# ==============================================================================
+# WORKLOAD ENVIRONMENT
+# Component-specific environment and runtime configuration
+# ==============================================================================
+workloadEnv:
+  # NRF workload settings
+  nrf:
+    COMPONENT_NAME: nrf-1
+  # SCP workload settings
+  scp:
+    COMPONENT_NAME: scp-1
+  # AMF workload settings
+  amf:
+    COMPONENT_NAME: amf-1
+    CORE_PATTERN: /mnt/core_dump/core.%e.%p.%t
+  # UPF workload settings
+  upf:
+    UPF_ADVERTISE_IP: 192.168.0.17
+    COMPONENT_NAME: upf-1
+    CORE_PATTERN: /mnt/core_dump/core.%e.%p.%t
+  # CHF workload settings
+  chf:
+    NRF_IP: niralos-nrf-1
+    COMPONENT_NAME: chf-1
+    CORE_PATTERN: /tmp/core.%e.%p
+  # NWDAF workload settings
+  nwdaf:
+    NRF_IP: niralos-nrf-1
+  # NEF workload settings
+  nef:
+    COMPONENT_NAME: nef-1
+    CORE_PATTERN: /tmp/core.%e.%p
+  # N3IWF workload settings
+  n3iwf:
+    N3IWF_IP: 192.168.0.79
+    AMF_IP: 192.168.0.17
+    COMPONENT_NAME: n3iwf-1
+    CORE_PATTERN: /tmp/core.%e.%p
+  # RTPEngine workload settings
+  rtpengine:
+    TABLE: '-1'
+    PORT_MIN: '49000'
+    PORT_MAX: '49050'
+    TOS: '184'
+    NO_FALLBACK: 'no'
+    PIDFILE: /run/ngcp-rtpengine-daemon.pid
+    SITE_ID: 'Bangalore'
+  # DNS workload settings
+  dns:
+    TIMESCALEDB_IP: timescaledb
+    PCRF_IP: 172.22.0.8
+    ICSCF_IP: icscf-service
+    ICSCF_BIND_PORT: '4060'
+    PYHSS_IP: pyhss
+    PYHSS_BIND_PORT: '3868'
+    SCSCF_IP: scscf-service
+    SCSCF_BIND_PORT: '3870'
+    PCSCF_IP: pcscf-service
+    PCSCF_BIND_PORT: '3871'
+    SMSC_IP: smsc-service
+    SMSC_BIND_PORT: '7090'
+    RTPENGINE_IP: rtpengine-service
+    MYSQL_IP: mysql-service
+    MYSQL_PORT: '3306'
+  # S-CSCF workload settings
+  scscf:
+    COMPONENT_NAME: scscf-1
+  # I-CSCF workload settings
+  icscf:
+    COMPONENT_NAME: icscf-1
+  # P-CSCF workload settings
+  pcscf:
+    COMPONENT_NAME: pcscf-1
+    DEPLOY_MODE: 5G
+    PCSCF_N5_ENABLE: '1'
+    RTPENGINE_IP: rtpengine-service
+    SCP_IP: nrf-service
+    UPF_IP: upf-service
+  # PyHSS workload settings
+  pyhss:
+    COMPONENT_NAME: pyhss
+    PYHSS_BIND_PORT: '3868'
+  # SMSC workload settings
+  smsc:
+    COMPONENT_NAME: smsc-1
+  # MinIO workload settings
+  minio:
+    MINIO_ROOT_USER: admin
+  # PostgreSQL workload settings
+  postgres:
+    POSTGRES_DB: keycloak
+    POSTGRES_USER: keycloak
+  # TimescaleDB workload settings
+  timescaledb:
+    POSTGRES_USER: timescale_user
+    POSTGRES_DB: timescale_db
+  # Keycloak workload settings
+  keycloak:
+    KC_DB: postgres
+    KC_DB_URL_HOST: postgres
+    KC_DB_URL_DATABASE: keycloak
+    KC_DB_USERNAME: keycloak
+    KC_BOOTSTRAP_ADMIN_USERNAME: admin
+    SUPER_ADMIN_EMAIL: admin@niralnetworks.com
+    SUPER_ADMIN_FIRST_NAME: Admin
+    SUPER_ADMIN_LAST_NAME: User
+    SUPER_ADMIN_CORPORATE_ID_NUMBER: CIN001
+    SUPER_ADMIN_DOB: 01/01/1990
+    SUPER_ADMIN_PHONE_NUMBER: '+910000000000'
+    KC_HTTP_ENABLED: 'true'
+    KC_HOSTNAME_STRICT: 'false'
+
+# ==============================================================================
+# CORE ENVIRONMENT
+# Shared environment values used by core-network components
+# ==============================================================================
+coreEnv:
+  TIMESCALEDB_IP: timescaledb
+  PCRF_IP: 172.22.0.50
+  PCSCF_IP: pcscf-service
+  SMF_DNS1: 8.8.8.8
+  SMF_DNS2: 8.8.4.4
+  UE_IPV4_INTERNET: 10.101.0.0/16
+  UE_IPV4_IMS: 10.102.0.0/16
+  DEPLOY_MODE: 5G
+  PCRF_BIND_PORT: '3868'
+  LD_LIBRARY_PATH: /niralos/install/lib/x86_64-linux-gnu
+  MAX_NUM_UE: '1024'
+  CORE_PATTERN: /mnt/core_dump/core.%e.%p.%t
+  ICSCF_BIND_PORT: '3869'
+  PYHSS_BIND_PORT: '3868'
+  MYSQL_IP: mysql
+  MYSQL_PORT: '3306'
+  SITE_ID: "Bangalore"
+  SITE_ID_CORE: "4f010fed-0edb-4376-9519-b71045b86b3e"
+
+# ==============================================================================
+# STORAGE
+# PVC definitions and host filesystem mappings
+# ==============================================================================
+storage:
+  createStorageClass: true
+  # PersistentVolumeClaim definitions
+  pvcs:
+    minio-data:
+      storageClass: niralos-local-path
+      size: 1Gi
+    mongodb-data:
+      storageClass: niralos-local-path
+      size: 1Gi
+    mongodb-config:
+      storageClass: niralos-local-path
+      size: 1Gi
+    mysql-data:
+      storageClass: niralos-local-path
+      size: 1Gi
+    postgres-data:
+      storageClass: niralos-local-path
+      size: 5Gi
+    timescaledb-data:
+      storageClass: niralos-local-path
+      size: 2Gi
+    keycloak-data:
+      storageClass: niralos-local-path
+      size: 1Gi
+    niralos-config-data:
+      storageClass: niralos-local-path
+      size: 100Mi
+  # Host path mount definitions
+  hostPaths:
+    niralos-upf.logs:
+      path: /home/user/core-logs
+      type: DirectoryOrCreate
+    niralos-upf.core-dumps:
+      path: /home/user/niral_config/core_dumps
+      type: DirectoryOrCreate
+    niralos-nef.niral-config:
+      path: /home/user/niral_config
+      type: null
+    niralos-n3iwf.lib-modules:
+      path: /lib/modules
+      type: null
+    niralos-dns.timezone:
+      path: /etc/timezone
+      type: File
+    niralos-dns.localtime:
+      path: /etc/localtime
+      type: File
+    niralos-sdn.niral-logs:
+      path: /home/user/niral_config/logs
+      type: DirectoryOrCreate
+    niralos-sdn.machine-id:
+      path: /etc/machine-id
+      type: File
+
+# ==============================================================================
+# KUBERNETES SERVICES
+# Service type, selectors, external IPs, and ports
+# ==============================================================================
+services:
+  # Service: niralos-nrf-1
+  niralos-nrf-1:
+    type: ClusterIP
+    selector:
+      app: nrf
+    externalIPs:
+    - 192.168.0.17
+    ports:
+    - name: sbi
+      port: 7777
+      targetPort: 7777
+      protocol: TCP
+  # Service: niralos-scp-1
+  niralos-scp-1:
+    type: ClusterIP
+    selector:
+      app: scp
+    externalIPs: null
+    ports:
+    - name: sbi
+      port: 7777
+      targetPort: 7777
+  # Service: amf-ngap
+  amf-ngap:
+    type: ClusterIP
+    selector:
+      app: amf
+    externalIPs:
+    - 192.168.0.17
+    ports:
+    - name: ngap
+      port: 38412
+      targetPort: 38412
+      protocol: SCTP
+  # Service: niralos-amf-1
+  niralos-amf-1:
+    type: null
+    selector:
+      app: amf
+    externalIPs: null
+    ports:
+    - name: sbi
+      port: 7777
+      targetPort: 7777
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  # Service: niralos-ausf-1
+  niralos-ausf-1:
+    type: ClusterIP
+    selector:
+      app: ausf
+    externalIPs: null
+    ports:
+    - name: sbi
+      port: 7777
+      targetPort: 7777
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+  # Service: udr-service
+  udr-service:
+    type: ClusterIP
+    selector:
+      app: udr
+    externalIPs: null
+    ports:
+    - name: sbi
+      port: 7777
+      targetPort: 7777
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+  # Service: niralos-udm-1
+  niralos-udm-1:
+    type: ClusterIP
+    selector:
+      app: udm
+    externalIPs: null
+    ports:
+    - name: sbi
+      port: 7777
+      targetPort: 7777
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+  # Service: niralos-pcf-1
+  niralos-pcf-1:
+    type: ClusterIP
+    selector:
+      app: pcf
+    externalIPs:
+    - 192.168.0.17
+    ports:
+    - name: sbi
+      port: 7777
+      targetPort: 7777
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+  # Service: niralos-bsf-1
+  niralos-bsf-1:
+    type: ClusterIP
+    selector:
+      app: bsf
+    externalIPs: null
+    ports:
+    - name: sbi
+      port: 7777
+      targetPort: 7777
+  # Service: nirfalos-nssf-1
+  nirfalos-nssf-1:
+    type: ClusterIP
+    selector:
+      app: nssf
+    externalIPs: null
+    ports:
+    - name: sbi
+      port: 7777
+      targetPort: 7777
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+  # Service: niralos-smf-1
+  niralos-smf-1:
+    type: ClusterIP
+    selector:
+      app: smf
+    externalIPs: null
+    ports:
+    - name: sbi
+      port: 7777
+      targetPort: 7777
+    - name: gtpc
+      port: 2123
+      targetPort: 2123
+      protocol: UDP
+    - name: pfcp
+      port: 8805
+      targetPort: 8805
+      protocol: UDP
+    - name: metrics
+      port: 9091
+      targetPort: 9091
+  # Service: upf-pfcp
+  upf-pfcp:
+    type: ClusterIP
+    selector:
+      app: upf
+    externalIPs: null
+    ports:
+    - name: pfcp
+      port: 8805
+      targetPort: 8805
+      protocol: UDP
+  # Service: upf-gtpu
+  upf-gtpu:
+    type: ClusterIP
+    selector:
+      app: upf
+    externalIPs:
+    - 192.168.0.17
+    ports:
+    - name: gtpu
+      port: 2152
+      targetPort: 2152
+      protocol: UDP
+  # Service: chf-nchf
+  chf-nchf:
+    type: null
+    selector:
+      app: chf
+    externalIPs: null
+    ports:
+    - name: sbi
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+    - name: cgf-ftp
+      port: 2121
+      targetPort: 2121
+      protocol: TCP
+    - name: cgf-listen
+      port: 2122
+      targetPort: 2122
+      protocol: TCP
+    - name: diameter-abmf
+      port: 3868
+      targetPort: 3868
+      protocol: TCP
+    - name: diameter-rf
+      port: 3869
+      targetPort: 3869
+      protocol: TCP
+  # Service: nwdaf-service
+  nwdaf-service:
+    type: ClusterIP
+    selector:
+      app: nwdaf
+    externalIPs: null
+    ports:
+    - name: sbi
+      port: 29600
+      targetPort: 29600
+  # Service: nef-service
+  nef-service:
+    type: ClusterIP
+    selector:
+      app: nef
+    externalIPs: null
+    ports:
+    - name: sbi
+      protocol: TCP
+      port: 29599
+      targetPort: 29599
+  # Service: rtpengine-service
+  rtpengine-service:
+    type: ClusterIP
+    selector:
+      app: rtpengine
+    externalIPs: null
+    ports:
+    - name: rtp-ng
+      protocol: UDP
+      port: 2223
+      targetPort: 2223
+    - name: rtp-cli
+      protocol: UDP
+      port: 2224
+      targetPort: 2224
+    - name: rtp-http
+      protocol: TCP
+      port: 2225
+      targetPort: 2225
+    - name: prometheus
+      protocol: TCP
+      port: 9092
+      targetPort: 9092
+  # Service: dns
+  dns:
+    type: ClusterIP
+    selector:
+      app: niralos-dns
+    externalIPs: null
+    ports:
+    - name: dns-udp
+      protocol: UDP
+      port: 53
+      targetPort: 53
+    - name: dns-tcp
+      protocol: TCP
+      port: 53
+      targetPort: 53
+  # Service: scscf-service
+  scscf-service:
+    type: ClusterIP
+    selector:
+      app: scscf
+    externalIPs: null
+    ports:
+    - name: diameter-tcp
+      protocol: TCP
+      port: 3870
+      targetPort: 3870
+    - name: diameter-udp
+      protocol: UDP
+      port: 3870
+      targetPort: 3870
+    - name: sip-tcp
+      protocol: TCP
+      port: 6060
+      targetPort: 6060
+    - name: sip-udp
+      protocol: UDP
+      port: 6060
+      targetPort: 6060
+  # Service: icscf-service
+  icscf-service:
+    type: ClusterIP
+    selector:
+      app: icscf
+    externalIPs: null
+    ports:
+    - name: sip-tcp
+      protocol: TCP
+      port: 4060
+      targetPort: 4060
+    - name: sip-udp
+      protocol: UDP
+      port: 4060
+      targetPort: 4060
+    - name: diameter-tcp
+      protocol: TCP
+      port: 3869
+      targetPort: 3869
+    - name: diameter-udp
+      protocol: UDP
+      port: 3869
+      targetPort: 3869
+  # Service: pcscf-service
+  pcscf-service:
+    type: ClusterIP
+    selector:
+      app: pcscf
+    externalIPs: null
+    ports:
+    - name: sip-tcp
+      protocol: TCP
+      port: 5060
+      targetPort: 5060
+    - name: sip-udp
+      protocol: UDP
+      port: 5060
+      targetPort: 5060
+    - name: diameter-tcp
+      protocol: TCP
+      port: 3871
+      targetPort: 3871
+    - name: diameter-udp
+      protocol: UDP
+      port: 3871
+      targetPort: 3871
+    - name: n5-sbi
+      protocol: TCP
+      port: 7777
+      targetPort: 7777
+  # Service: pyhss
+  pyhss:
+    type: NodePort
+    selector:
+      app: pyhss
+    externalIPs: null
+    ports:
+    - name: diameter-tcp
+      protocol: TCP
+      port: 3868
+      targetPort: 3868
+    - name: diameter-udp
+      protocol: UDP
+      port: 3868
+      targetPort: 3868
+    - name: api
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 30084
+  # Service: smsc-service
+  smsc-service:
+    type: ClusterIP
+    selector:
+      app: smsc
+    externalIPs: null
+    ports:
+    - name: sip-tcp
+      protocol: TCP
+      port: 7090
+      targetPort: 7090
+    - name: sip-udp
+      protocol: UDP
+      port: 7090
+      targetPort: 7090
+
+# ==============================================================================
+# SECRETS / CREDENTIALS / TLS
+# Registry credentials, passwords, API secrets, and certificates
+# ==============================================================================
+secrets:
+  # Docker registry credentials
+  # For production, pass your token via --set secrets.dockerRegistry.password=...
+  dockerRegistry:
+    username: niralnetworks
+    password: "replace-with-dockerhub-token"
+  # TimescaleDB credentials
+  timescaledb:
+    username: timescale_user
+    password: timescale_password
+    database: timescale_db
+  # MySQL credentials
+  mysql:
+    rootPassword: ims
+  # PostgreSQL credentials
+  postgres:
+    username: keycloak
+    password: keycloakpass
+    database: keycloak
+  # MinIO credentials
+  minio:
+    rootUser: admin
+    rootPassword: admin@1234
+  # Keycloak credentials
+  keycloak:
+    dbUsername: keycloak
+    dbPassword: keycloakpass
+    bootstrapAdminUsername: admin
+    bootstrapAdminPassword: admin
+    superAdminPassword: superadmin
+  # IMS credentials
+  ims:
+    imsUserPassword: heslo
+    provisioningPassword: provi
+    pyhssPassword: ims_db_pass
+  # SMSC credentials
+  smsc:
+    nexmoApiKey: abcdef
+    nexmoApiSecret: xyz
+  # SDN credentials
+  sdn:
+    jwtSecret: ZmAnN71qRH
+    vmUsername: user
+    vmPassword: password
+  # TLS certificates and private keys
+  tls:
+    chf-tls:
+      chf.key: '-----BEGIN PRIVATE KEY-----
+
+        MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC6iTvZu1HXW+vU
+
+        TrbTERb+WEuNk8GrrkYEEeJdnjPsA5bLGSN6gwJM9aWhiBHggwhtmpx6E6iIa65S
+
+        NFHughyPB6IF8rpMeYY9q9Wnbsjk7SuXxdtj0NOHC4KkZe9Xj/MiDhm0mirG6aXR
+
+        9gy3ay14mz+1b2LwmW97PD2+CX/fOHotEk32mnvYffNJvSL+TZrsbst0sfvcV6Pk
+
+        u8EziUlo1wMoKYHhss8PI1ucKCnZ2HNK9Kn8oJyXZiXY41lBQao3cSS+HDKASaEZ
+
+        N+1WLKgJ39hgkNui5IUK2cMHC/RiiCtSlTAPMhzQ3PoTSCaMFr6zUtZ+zY+BgrC4
+
+        HQ93fr5TAgMBAAECggEBALiAQJiNdNekbdAiwyZlQu7z+lbgjLD4wPwJjHK4pfaN
+
+        XjsodDUbG81vMxJgef4s3Ms8IAWHKC03BMb+RQO54fF+xT1I5gf6M1MQgVUIeOAl
+
+        zfZilytVQ8PRGLjushtToFJQzBAcZK82LvNLgSxycBlYxVz5/UypFuE3poIu9zGb
+
+        AwYDBIk9Wdl0XPbv5pspMUIyzaUohZk4PtUTwdBa7DIYgOtbCpEJTlI8qnisegBj
+
+        oLQQdKX/VAskCSGcjpwJJU53AsZjp3TjcLn+GiiOLy8vwaIcJ1MlfzLKZJnVUqK4
+
+        MCKS24xHVXFP8rYNgEHZ7+n2ERhJ+NAhBGnEXwHFlKECgYEA7weeV4cNaM/7vUvK
+
+        GMGyyeFpi7GpyiwWTwvMaE5F1A3nrNycAKPdZdsTCC16fKaXP+KUeo6LxA3xxJxZ
+
+        iSopfQjlSZJQAwr2z00WHpR8UihPDyuqU7/wYL5J1Sc8ClN8CJPD8Ce9CUGWujGA
+
+        g3a2+N5xHqDFUfCQ5+DdN8h+i8sCgYEAx8eJ/VKAKe+UeIAlTN9lDKnqWujJU5cR
+
+        PKgkrLz+aDdFKqoA+V7NfcHYx83oVBvodM0R3klQUmDO74fB6le4q3cmB+8+33u5
+
+        x1eJyp+ApSE5ZKSOJ/giZPSbBWtA5revp/WZCwTSF0Lz/nFDnIvJ1+djWl7onkSM
+
+        4uMcI1PVVpkCgYBIe1XvkrtlOhRLLY1F/o6ZmynnO2OSM9Y7+Abu5jVUfTbweyEv
+
+        LIF5Xnoh87B91gJtU+bUVx9YvyW+Ce84oblc+fKVYbGzioKXD/gSI9KjEygOIJ6Q
+
+        sNZSb8FxymjxdKla7Hvw+gvfn6z2HwaqVrhbNRC2Segr1bgLKGvMe5asCwKBgQCK
+
+        gfhUjmdXK8h3BvlVY6iOcBuQLcavUpRbxoOu01Va8b7dhoIoYib8InJmjIagEb1H
+
+        hYn24EN06bNu9GNoUqsxDelrJN8lWIWEBFf/CDjLw84jzcbVRT6rWb9EsYiMrRt2
+
+        ylrx/cSe5gd+CA8FMRGew8jpNdX3LLW09BplD9FgOQKBgG3kUcJJpf5EiQJuniSJ
+
+        sLJGAznDtS8m8E67bBK//5uHmWHNfFpjZLkB1Zr//AbjAqYqibxSGk5kUucNFZ9f
+
+        XYwUHSB8LvwYhZhzlRR9b5yiDMtZFWAZl3YCxyR8+kkcsG8U3jA/bqeL2Ke1lQrU
+
+        7WsjhKn3x8+McmXaZIb2Q4tQ
+
+        -----END PRIVATE KEY-----
+
+        '
+      chf.pem: '-----BEGIN CERTIFICATE-----
+
+        MIIDazCCAlOgAwIBAgIUeAP9uOZCMS0mlbnaNegzQcIwnNwwDQYJKoZIhvcNAQEL
+
+        BQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM
+
+        GEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yMzA5MDgwNTEyNTZaFw0yMzEw
+
+        MDgwNTEyNTZaMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEw
+
+        HwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwggEiMA0GCSqGSIb3DQEB
+
+        AQUAA4IBDwAwggEKAoIBAQC6iTvZu1HXW+vUTrbTERb+WEuNk8GrrkYEEeJdnjPs
+
+        A5bLGSN6gwJM9aWhiBHggwhtmpx6E6iIa65SNFHughyPB6IF8rpMeYY9q9Wnbsjk
+
+        7SuXxdtj0NOHC4KkZe9Xj/MiDhm0mirG6aXR9gy3ay14mz+1b2LwmW97PD2+CX/f
+
+        OHotEk32mnvYffNJvSL+TZrsbst0sfvcV6Pku8EziUlo1wMoKYHhss8PI1ucKCnZ
+
+        2HNK9Kn8oJyXZiXY41lBQao3cSS+HDKASaEZN+1WLKgJ39hgkNui5IUK2cMHC/Ri
+
+        iCtSlTAPMhzQ3PoTSCaMFr6zUtZ+zY+BgrC4HQ93fr5TAgMBAAGjUzBRMB0GA1Ud
+
+        DgQWBBRVzQKLH7rtZPKPbbEQZllA0WhhHzAfBgNVHSMEGDAWgBRVzQKLH7rtZPKP
+
+        bbEQZllA0WhhHzAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQBW
+
+        GZ+5c5oKBz5oIQDkt/r2VJ82NceBEnEXUntkkK8N0xBPKMC5qoq2rF5PdwkSj3gY
+
+        qGBv1AQMD4xE7X275UAxmzDKaD/B8XrgcVqv32kSkjJmAqoQdP2iQP4ZjYh2Aikt
+
+        aG0WaD/ltIOETl/8It7WJ22qrm2NTE5Q0jY5w2L+HoxVum7vHmH6if25ppVuhlJE
+
+        UU7elyMxEqezf44JmZRGbKMarY4ALKXSoKXUjELNE0L2tJiRT3wKzg0p/9LA0Eq/
+
+        3vhV6595ptADqzoaSVwtoLhyY+4l/DqdTLtgv6GIw3MZL6Hs0Sy0RDjvKHySjZkA
+
+        7jUQa9wARB3zRMgkPo0y
+
+        -----END CERTIFICATE-----
+
+        '
+    n3iwf-tls:
+      n3iwf.crt: '-----BEGIN CERTIFICATE-----
+
+        MIIDbzCCAlegAwIBAgIBATANBgkqhkiG9w0BAQsFADBSMRcwFQYDVQQDDA5jYS5s
+
+        b2NhbGRvbWFpbjELMAkGA1UEBhMCSU4xEjAQBgNVBAgMCUthcm5hdGFrYTEWMBQG
+
+        A1UECgwNTmlyYWxOZXR3b3JrczAeFw0yNDAyMTkwODU5MzNaFw0zNDAyMTYwODU5
+
+        MzNaMFUxCzAJBgNVBAYTAklOMRIwEAYDVQQIDAlLYXJuYXRha2ExFjAUBgNVBAoM
+
+        DU5pcmFsTmV0d29ya3MxGjAYBgNVBAMMEW4zaXdmLmxvY2FsZG9tYWluMIIBIjAN
+
+        BgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvGivSFcDED9SdYT9lMSrTBfA9Bbr
+
+        R6l2zQ4ctN+HMN0vWghTUXWbY9HnXYMhX4fzYhkwyr/WuOWckuBWjOxwHp+JbQbF
+
+        eiV8WLiPeYK5Tp1jhEUU+D0vIj/pTT63myfADC22r5UIjgjoYL1x9BGT7Ft6+Sd8
+
+        AtaKm5LbakZd+iVIQ7bCfEdReBWyp4y9tlAox741kbRFjceuTZGp79AfxYAe7v2x
+
+        /v9gEfaTueWA5tMEYNwgEyyu1JtbgsT5wtFRqElKRliZ3WA4X1jOxcceEN1tM4y7
+
+        4L0Nb3y+Q816pE9i2h97ZO1Xztkx+LbYNz7b9XrefBCz7N4XG2rdeGJvDwIDAQAB
+
+        o00wSzAJBgNVHRMEAjAAMB0GA1UdDgQWBBQn6QTPLRPhROMwxUBdHLdZycXAsTAf
+
+        BgNVHSMEGDAWgBSPfODcIcQ6FHr4b2sghU+Q4syXuzANBgkqhkiG9w0BAQsFAAOC
+
+        AQEAWEgMO2OVH1ygkwjEnUGWccnKOxpxumgjiOM/4JTc2l5yXcE1YAE8NGL9e96Y
+
+        5JLpneJKwc2dSC9dah080YKxnJj2Z788gqocSThwbPSiCzZw0QUBLHSK+rnb7iec
+
+        hn1KeFF2hJ3GRsUQ+BmfzqBlJoJtlVmrbfdE/7sXpwRVW08YZnpV1BBEpufFijWs
+
+        GEeoUNnr1S0hFwHZjieKd7NY5n/DfTaCnjWkkBqKgHZdCheLx/Ud3i3Gfa77CZWi
+
+        fhGSofacPM2rNOzdm33bGZw+bNgnnX42sR0jC8q8/XqohL4YhXe7EmDePlWHsnNI
+
+        svKwzPQSB+VbPLjwkCCmsrd9NQ==
+
+        -----END CERTIFICATE-----
+
+        '
+      n3iwf.key: '-----BEGIN PRIVATE KEY-----
+
+        MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC8aK9IVwMQP1J1
+
+        hP2UxKtMF8D0FutHqXbNDhy034cw3S9aCFNRdZtj0eddgyFfh/NiGTDKv9a45ZyS
+
+        4FaM7HAen4ltBsV6JXxYuI95grlOnWOERRT4PS8iP+lNPrebJ8AMLbavlQiOCOhg
+
+        vXH0EZPsW3r5J3wC1oqbkttqRl36JUhDtsJ8R1F4FbKnjL22UCjHvjWRtEWNx65N
+
+        kanv0B/FgB7u/bH+/2AR9pO55YDm0wRg3CATLK7Um1uCxPnC0VGoSUpGWJndYDhf
+
+        WM7Fxx4Q3W0zjLvgvQ1vfL5DzXqkT2LaH3tk7VfO2TH4ttg3Ptv1et58ELPs3hcb
+
+        at14Ym8PAgMBAAECggEAQg+mngO8VD8Pp5sY2sfWlBikFDHRD1BxElcHY7gYi96S
+
+        EsxmgmJtOKPJrvUih3+Aq/3PKNf47t27d5hnYIQqj+I6alr8dOad4fHchKt8U/9F
+
+        fIRIZP32/9hO8kGyWRmn8d05d/kWhc7Dw9/JC9358t7kkGXyyn/1G7Vzb6D6pJFB
+
+        7nrV8psRjXHcp2jebHNM85O5ow/5EuCCeOODPBDS+6QsSe0nRdPKy2noc/+MDRDn
+
+        swRB6JQVg9zjdHFgCbb4qQe3HwXm8oSNsTGi1TGVLhIK3d4yJ42UuYQ583oRatuF
+
+        kyV5R8hxcy9heTCI00b9p/251y5e+A5OXoGuanPrqQKBgQDeWoMs/nawcLgQoBi/
+
+        RzHfGN9D/QUft3akpeGuFq3fhqPbAFae4X3EzGsMaHqAMeKytU2l3Xtk3p9lDIhs
+
+        NhL6TGirIwWtPtXWUmcf39HokkiLrLX/rXI1f4WJK61GeaN65cflZkq14XNs4ydG
+
+        rQbMcGplDbOlQxyLpKNuxhz/LQKBgQDY6ztPjpTV6yznHsDgh3PVAkXnHGoefG15
+
+        zZaD1cp8FnOiMRn3LMHNjAM/PUaYPuHZmPl4/HDoA2SdMxrqATI4vpcUr3j1amtS
+
+        FsFa3dfFdQ3KaTQ/yOy/MWf3qDfbQRv/f437Eg5y36Evv8oIxM86bwBvCbeHSfGZ
+
+        wmxWJvFsqwKBgQCABFSpvwfOpdcTm1kkJ3VLISLKHg6pKBOiz+6TMHOC0h3cpOE6
+
+        MFEc0SSAzFZbIF2IzmGaMV4twQ68Ou8AflGG0h8hCNTn3dl3v5GoBFDyOeaSpClU
+
+        vyOWMYlMZF0qyjWZOFpSdQZmmRq/gjjGtC/J3J8k9zKK34y7yVpfGKjxMQKBgD6h
+
+        9TcseScnR4jYZWKvWa+4f0yS9MUmskmIJhyc32Fi7jJ3sQKgprjd45Yf8EFHbtjw
+
+        hZ/8a/FiAWwudGf6vnCJ/3+Whvt9pc1HCr9c7M9z0+6M3+xG7Kzr7BQjOzWQoC/u
+
+        uaUz+n4KujTaUNClWxyJLnvhN1/V5u+5pqRdjDoPAoGAC9sMX9ixMyhG2Di+v4ME
+
+        9DJAqt4pL181IR/Whcv9dw411ECug9m2U2W7DjlabkSmHz2TtvEwHqhGQAfbLe/R
+
+        Fv7lcyxDmi1WR8VkR04kMZbwA3sKJpViLX7pFqHmG2ZBF8XDcOQQvOiUEmMNGYp9
+
+        ZEKN2wU+o6565rtK1py9JyU=
+
+        -----END PRIVATE KEY-----
+
+        '

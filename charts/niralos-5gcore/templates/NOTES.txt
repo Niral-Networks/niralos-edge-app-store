@@ -1,0 +1,40 @@
+==============================================================================
+NiralOS 5G Core Network stack has been successfully deployed!
+==============================================================================
+
+Release Name: {{ .Release.Name }}
+Namespace:    {{ .Release.Namespace }}
+
+1. Monitor Pod Status:
+----------------------
+Check that all 5G Core Network Functions (AMF, SMF, UPF, NRF, UDM, etc.) and
+auxiliary services are entering the 'Running' state:
+
+  kubectl get pods -n {{ .Release.Namespace }} -o wide
+
+2. Network & Multus Status:
+----------------------------
+UPF and N3IWF require Multus CNI with macvlan interface '{{ .Values.networking.macvlan.master }}'.
+Verify the NetworkAttachmentDefinition:
+
+  kubectl get net-attach-def -n {{ .Release.Namespace }}
+
+3. CoreDNS / IMS Domain Resolution:
+-----------------------------------
+If running IMS with 3GPP domain routing, ensure your cluster CoreDNS is configured
+to resolve the IMS domain:
+  PLMN MCC: {{ .Values.coreNetwork.plmn.mcc }}
+  PLMN MNC: {{ .Values.coreNetwork.plmn.mnc }}
+
+4. Accessing Services:
+----------------------
+List all active services and their allocated NodePorts:
+
+  kubectl get svc -n {{ .Release.Namespace }}
+
+For SDN Controller UI or Keycloak Admin portal:
+  kubectl port-forward svc/keycloak-service 8080:8080 -n {{ .Release.Namespace }}
+
+==============================================================================
+For full documentation and support, visit https://niralnetworks.com
+==============================================================================
