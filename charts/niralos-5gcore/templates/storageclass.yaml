@@ -3,8 +3,6 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: niralos-local-path
-  annotations:
-    helm.sh/resource-policy: keep
 provisioner: rancher.io/local-path
 reclaimPolicy: Retain
 volumeBindingMode: WaitForFirstConsumer

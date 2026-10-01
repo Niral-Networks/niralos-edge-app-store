@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "niralos-5gcore.fullname" . }}-local-path-sa
+  name: local-path-provisioner-service-account
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/component: local-path-provisioner
@@ -11,7 +11,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ include "niralos-5gcore.fullname" . }}-local-path-role
+  name: local-path-provisioner-role
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/component: local-path-provisioner
@@ -45,7 +45,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ include "niralos-5gcore.fullname" . }}-local-path-rb
+  name: local-path-provisioner-bind
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/component: local-path-provisioner
@@ -53,10 +53,10 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ include "niralos-5gcore.fullname" . }}-local-path-role
+  name: local-path-provisioner-role
 subjects:
   - kind: ServiceAccount
-    name: {{ include "niralos-5gcore.fullname" . }}-local-path-sa
+    name: local-path-provisioner-service-account
     namespace: {{ .Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -72,13 +72,13 @@ roleRef:
   name: {{ include "niralos-5gcore.fullname" . }}-local-path-clusterrole
 subjects:
   - kind: ServiceAccount
-    name: {{ include "niralos-5gcore.fullname" . }}-local-path-sa
+    name: local-path-provisioner-service-account
     namespace: {{ .Release.Namespace }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "niralos-5gcore.fullname" . }}-local-path-config
+  name: local-path-config
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/component: local-path-provisioner
@@ -137,7 +137,7 @@ spec:
         app.kubernetes.io/component: local-path-provisioner
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
-      serviceAccountName: {{ include "niralos-5gcore.fullname" . }}-local-path-sa
+      serviceAccountName: local-path-provisioner-service-account
       {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -152,10 +152,6 @@ spec:
             - start
             - --config
             - /etc/config/config.json
-            - --configmap-name
-            - {{ include "niralos-5gcore.fullname" . }}-local-path-config
-            - --service-account-name
-            - {{ include "niralos-5gcore.fullname" . }}-local-path-sa
           ports:
             - name: health
               containerPort: 8080
@@ -194,5 +190,5 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: {{ include "niralos-5gcore.fullname" . }}-local-path-config
+            name: local-path-config
 {{- end }}
