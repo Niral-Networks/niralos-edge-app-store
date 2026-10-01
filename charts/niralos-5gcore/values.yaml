@@ -264,6 +264,13 @@ coreEnv:
 # ==============================================================================
 storage:
   createStorageClass: true
+  # Embedded Rancher Local Path Provisioner
+  localPathProvisioner:
+    # Set to true to automatically deploy the local-path-provisioner controller
+    enabled: true
+    image: rancher/local-path-provisioner:v0.0.37
+    hostPath: /opt/local-path-provisioner
+    helperImage: busybox:1.36
   # PersistentVolumeClaim definitions
   pvcs:
     minio-data:
