@@ -3,7 +3,7 @@ kind: ConfigMap
 
 metadata:
   name: core-env
-  namespace: niralos
+  namespace: {{ .Release.Namespace }}
 
 data:
   MCC: "001"

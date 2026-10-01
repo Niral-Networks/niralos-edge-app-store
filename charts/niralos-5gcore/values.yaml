@@ -85,6 +85,7 @@ images:
   timescaledb: timescale/timescaledb:latest-pg14
   keycloak: niralnetworks/niralos-keycloak-sdn:3.0.9
   sdn: niralnetworks/niralos-local-sdn:NIGHTLY_2026-09-16_04-00-04
+  busybox: busybox:1.36
 
 # ==============================================================================
 # REPLICA COUNTS
