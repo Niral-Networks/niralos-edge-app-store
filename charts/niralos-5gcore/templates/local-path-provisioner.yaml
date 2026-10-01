@@ -152,6 +152,10 @@ spec:
             - start
             - --config
             - /etc/config/config.json
+            - --configmap-name
+            - {{ include "niralos-5gcore.fullname" . }}-local-path-config
+            - --service-account-name
+            - {{ include "niralos-5gcore.fullname" . }}-local-path-sa
           ports:
             - name: health
               containerPort: 8080

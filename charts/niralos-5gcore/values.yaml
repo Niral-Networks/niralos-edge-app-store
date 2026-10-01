@@ -263,39 +263,39 @@ coreEnv:
 # PVC definitions and host filesystem mappings
 # ==============================================================================
 storage:
-  createStorageClass: true
+  createStorageClass: false
   # Embedded Rancher Local Path Provisioner
   localPathProvisioner:
-    # Set to true to automatically deploy the local-path-provisioner controller
-    enabled: true
+    # Set to true to automatically deploy the local-path-provisioner controller if your cluster lacks storage
+    enabled: false
     image: rancher/local-path-provisioner:v0.0.37
     hostPath: /opt/local-path-provisioner
     helperImage: busybox:1.36
   # PersistentVolumeClaim definitions
   pvcs:
     minio-data:
-      storageClass: niralos-local-path
+      storageClass: local-path
       size: 1Gi
     mongodb-data:
-      storageClass: niralos-local-path
+      storageClass: local-path
       size: 1Gi
     mongodb-config:
-      storageClass: niralos-local-path
+      storageClass: local-path
       size: 1Gi
     mysql-data:
-      storageClass: niralos-local-path
+      storageClass: local-path
       size: 1Gi
     postgres-data:
-      storageClass: niralos-local-path
+      storageClass: local-path
       size: 5Gi
     timescaledb-data:
-      storageClass: niralos-local-path
+      storageClass: local-path
       size: 2Gi
     keycloak-data:
-      storageClass: niralos-local-path
+      storageClass: local-path
       size: 1Gi
     niralos-config-data:
-      storageClass: niralos-local-path
+      storageClass: local-path
       size: 100Mi
   # Host path mount definitions
   hostPaths:
