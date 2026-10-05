@@ -1499,6 +1499,8 @@ spec:
           - |
             /mnt/n3iwf/n3iwf_init.sh
             ulimit -c unlimited
+            echo "Waiting ${STARTUP_DELAY:-30}s for core network functions to initialize..."
+            sleep ${STARTUP_DELAY:-30}
             exec /n3iwf/n3iwf -c /n3iwf/n3iwfcfg.yaml
 
         envFrom:
@@ -1506,6 +1508,9 @@ spec:
             name: core-env
 
         env:
+        - name: STARTUP_DELAY
+          value: {{ .Values.workloadEnv.n3iwf.STARTUP_DELAY | default 30 | quote }}
+
         - name: N3IWF_IP
           value: {{ .Values.workloadEnv.n3iwf.N3IWF_IP | quote }}
 

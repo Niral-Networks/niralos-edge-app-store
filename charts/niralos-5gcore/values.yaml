@@ -156,6 +156,7 @@ workloadEnv:
     CORE_PATTERN: /tmp/core.%e.%p
   # N3IWF workload settings
   n3iwf:
+    STARTUP_DELAY: 120
     N3IWF_IP: 192.168.0.79
     AMF_IP: 192.168.0.17
     COMPONENT_NAME: n3iwf-1
