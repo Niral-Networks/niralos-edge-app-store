@@ -3438,7 +3438,7 @@ spec:
               echo "MinIO is ready."
 
               echo "Waiting for Keycloak..."
-              until nc -z keycloak 8085; do
+              until nc -z keycloak 8080; do
                 echo "Keycloak is not ready..."
                 sleep 2
               done
