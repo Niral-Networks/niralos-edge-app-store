@@ -33,7 +33,8 @@ List all active services and their allocated NodePorts:
   kubectl get svc -n {{ .Release.Namespace }}
 
 For SDN Controller UI or Keycloak Admin portal:
-  kubectl port-forward svc/keycloak-service 8080:8080 -n {{ .Release.Namespace }}
+  Keycloak NodePort: http://<Node-IP>:30085
+  kubectl port-forward svc/keycloak 8080:8080 -n {{ .Release.Namespace }}
 
 ==============================================================================
 For full documentation and support, visit https://niralnetworks.com

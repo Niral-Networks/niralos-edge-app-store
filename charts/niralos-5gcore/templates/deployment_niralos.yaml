@@ -2815,16 +2815,17 @@ metadata:
   name: keycloak
   namespace: {{ .Release.Namespace }}
 spec:
+  type: NodePort
   selector:
     app: keycloak
   ports:
     - name: http
       port: 8080
       targetPort: 8080
+      nodePort: 30085
     - name: http-alt
       port: 8085
       targetPort: 8080
-  type: ClusterIP
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -3277,19 +3278,19 @@ data:
     fivegcoreProtocol=http://
 
     # Keycloak URLs
-    spring.security.oauth2.resourceserver.jwt.issuer-uri=http://192.168.0.17:8085/realms/master
+    spring.security.oauth2.resourceserver.jwt.issuer-uri=http://keycloak:8080/realms/master
 
     # Keycloak realm and client
     keycloak.realm=master
     keycloak.resource=niralos-edge-client
 
     # Keycloak server
-    keycloak.server-url=http://192.168.0.17:8085
+    keycloak.server-url=http://keycloak:8080
     keycloak.admin-username={{ .Values.secrets.keycloak.bootstrapAdminUsername }}
     keycloak.admin-password={{ .Values.secrets.keycloak.bootstrapAdminPassword }}
 
     # Minio
-    minio.endpoint=http://192.168.0.17:9000
+    minio.endpoint=http://minio:9000
     minio.access-key={{ .Values.secrets.minio.rootUser }}
     minio.secret-key={{ .Values.secrets.minio.rootPassword }}
     minio.bucket-name=sdn-profile-images
