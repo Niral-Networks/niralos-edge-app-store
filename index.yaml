@@ -54,6 +54,34 @@ entries:
     version: 0.1.0
   niralos-5gcore:
   - apiVersion: v2
+    appVersion: 3.0.9
+    created: "2026-10-05T09:42:14.048085056Z"
+    description: NiralOS 5G Core is a cloud-native, carrier-grade private 5G core
+      network platform. It delivers 3GPP Release 16 compliance with modular microservices
+      including AMF, SMF, UPF, NRF, UDM, AUSF, PCF, NSSF, and integrated IMS with
+      edge deployment capabilities.
+    digest: afa6fa04c38cb157066f3b683cbe79cfaa309b0a5329114db1da6387f1a5ccb3
+    home: https://niralnetworks.com
+    icon: https://raw.githubusercontent.com/Niral-Networks/niralos-edge-app-store/main/assets/niralos-5gcore-icon.png
+    keywords:
+    - 5g
+    - 5gcore
+    - telecom
+    - private5g
+    - niralos
+    - upf
+    - edge
+    maintainers:
+    - email: contact@niralnetworks.com
+      name: Niral Networks
+    name: niralos-5gcore
+    sources:
+    - https://github.com/Niral-Networks/niralos-edge-app-store
+    type: application
+    urls:
+    - niralos-5gcore-3.0.9.tgz
+    version: 3.0.9
+  - apiVersion: v2
     appVersion: 3.0.8
     created: "2026-10-05T07:06:58.300679001Z"
     description: NiralOS 5G Core is a cloud-native, carrier-grade private 5G core
@@ -81,4 +109,4 @@ entries:
     urls:
     - niralos-5gcore-3.0.8.tgz
     version: 3.0.8
-generated: "2026-10-05T07:06:58.300693007Z"
+generated: "2026-10-05T09:42:14.048107569Z"
