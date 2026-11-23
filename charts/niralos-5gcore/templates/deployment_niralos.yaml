@@ -2633,6 +2633,8 @@ spec:
                 - pg_isready
                 - -U
                 - timescale_user
+                - -d
+                - {{ .Values.secrets.timescaledb.database }}
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
@@ -2641,6 +2643,8 @@ spec:
                 - pg_isready
                 - -U
                 - timescale_user
+                - -d
+                - {{ .Values.secrets.timescaledb.database }}
             initialDelaySeconds: 30
             periodSeconds: 20
   volumeClaimTemplates:

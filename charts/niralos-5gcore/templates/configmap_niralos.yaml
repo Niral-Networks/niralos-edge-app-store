@@ -32,9 +32,19 @@ data:
 
     nrf:
       serving:
+        {{- if .Values.coreNetwork.plmnList }}
+        {{- range .Values.coreNetwork.plmnList }}
+        {{- if and . .mcc }}
         - plmn_id:
-            mcc: MCC
-            mnc: MNC
+            mcc: {{ .mcc | quote }}
+            mnc: {{ .mnc | quote }}
+        {{- end }}
+        {{- end }}
+        {{- else }}
+        - plmn_id:
+            mcc: {{ .Values.coreNetwork.plmn.mcc | quote }}
+            mnc: {{ .Values.coreNetwork.plmn.mnc | quote }}
+        {{- end }}
 
       sbi:
         server:
@@ -45,7 +55,7 @@ data:
         server:
           - address: NRF_IP
             port: 9090
-      service_id: niralos.nrf.001
+      service_id: {{ include "niralos.serviceId" (dict "root" $ "nf" "nrf") }}
       site_id: SITE_ID_CORE
   nrf_init.sh: |
     #!/bin/bash
@@ -119,7 +129,7 @@ data:
             cacert: /mnt/newtls/ca.crt
             client_private_key: /mnt/newtls/scp.key
             client_cert: /mnt/newtls/scp.crt
-      service_id: niralos.scp.001
+      service_id: {{ include "niralos.serviceId" (dict "root" $ "nf" "scp") }}
       site_id: SITE_ID_CORE
   scp_init.sh: |
     #!/bin/bash
@@ -213,30 +223,102 @@ data:
             port: 9090
 
       guami:
+        {{- if .Values.coreNetwork.plmnList }}
+        {{- range .Values.coreNetwork.plmnList }}
+        {{- if and . .mcc }}
         - plmn_id:
-            mcc: MCC
-            mnc: MNC
+            mcc: {{ .mcc | quote }}
+            mnc: {{ .mnc | quote }}
           amf_id:
             region: 2
             set: 1
+        {{- end }}
+        {{- end }}
+        {{- else }}
+        - plmn_id:
+            mcc: {{ .Values.coreNetwork.plmn.mcc | quote }}
+            mnc: {{ .Values.coreNetwork.plmn.mnc | quote }}
+          amf_id:
+            region: 2
+            set: 1
+        {{- end }}
 
       tai:
+        {{- if eq (kindOf .Values.coreNetwork.tai) "slice" }}
+        {{- range .Values.coreNetwork.tai }}
         - plmn_id:
-            mcc: MCC
-            mnc: MNC
-          tac: {{ .Values.coreNetwork.tai.tac }}
+            mcc: {{ .plmn_id.mcc | quote }}
+            mnc: {{ .plmn_id.mnc | quote }}
+          {{- if kindIs "slice" .tac }}
+          tac: [{{ range $i, $t := .tac }}{{ if $i }}, {{ end }}{{ $t }}{{ end }}]
+          {{- else }}
+          tac: {{ .tac }}
+          {{- end }}
+        {{- end }}
+        {{- else }}
+        {{- $globalTacs := list }}
+        {{- if kindIs "slice" .Values.coreNetwork.tai.tac }}
+          {{- $globalTacs = .Values.coreNetwork.tai.tac }}
+        {{- else if .Values.coreNetwork.tai.tacList }}
+          {{- $globalTacs = .Values.coreNetwork.tai.tacList }}
+        {{- else if .Values.coreNetwork.tai.tac }}
+          {{- $globalTacs = list .Values.coreNetwork.tai.tac }}
+        {{- else }}
+          {{- $globalTacs = list 1 }}
+        {{- end }}
+        {{- $plmns := .Values.coreNetwork.plmnList | default (list .Values.coreNetwork.plmn) }}
+        {{- range $plmn := $plmns }}
+        {{- if and $plmn $plmn.mcc }}
+        {{- $tacs := $globalTacs }}
+        {{- if $plmn.tacList }}
+          {{- $tacs = $plmn.tacList }}
+        {{- else if kindIs "slice" $plmn.tac }}
+          {{- $tacs = $plmn.tac }}
+        {{- else if $plmn.tac }}
+          {{- $tacs = list $plmn.tac }}
+        {{- end }}
+        - plmn_id:
+            mcc: {{ $plmn.mcc | quote }}
+            mnc: {{ $plmn.mnc | quote }}
+          {{- if gt (len $tacs) 1 }}
+          tac: [{{ range $i, $t := $tacs }}{{ if $i }}, {{ end }}{{ $t }}{{ end }}]
+          {{- else }}
+          tac: {{ index $tacs 0 }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
 
       plmn_support:
+        {{- if .Values.coreNetwork.plmnList }}
+        {{- range .Values.coreNetwork.plmnList }}
+        {{- if and . .mcc }}
         - plmn_id:
-            mcc: MCC
-            mnc: MNC
+            mcc: {{ .mcc | quote }}
+            mnc: {{ .mnc | quote }}
           s_nssai:
-            - sst: {{ (index .Values.coreNetwork.slices 0).sst }}
-              sd: {{ (index .Values.coreNetwork.slices 0).sd }}
+            {{- range $.Values.coreNetwork.slices }}
+            {{- if and . .sst }}
+            - sst: {{ .sst }}
+              sd: {{ .sd | quote }}
               dynamic: 0
-            - sst: {{ (index .Values.coreNetwork.slices 0).sst }}
-              sd: {{ (index .Values.coreNetwork.slices 1).sd }}
+            {{- end }}
+            {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- else }}
+        - plmn_id:
+            mcc: {{ .Values.coreNetwork.plmn.mcc | quote }}
+            mnc: {{ .Values.coreNetwork.plmn.mnc | quote }}
+          s_nssai:
+            {{- range .Values.coreNetwork.slices }}
+            {{- if and . .sst }}
+            - sst: {{ .sst }}
+              sd: {{ .sd | quote }}
               dynamic: 0
+            {{- end }}
+            {{- end }}
+        {{- end }}
 
       security:
         integrity_order: [NIA2, NIA1, NIA0]
@@ -246,12 +328,12 @@ data:
         full: Niral-5G
 
       amf_name: Niral-amf0
-      service_id: niralos.amf.001
+      service_id: {{ include "niralos.serviceId" (dict "root" $ "nf" "amf") }}
 
       nf_support:
         enable: true
         length: 2
-        imsVoPS: 1
+        imsVoPS: {{ include "niralos.imsVoPS" . }}
         emc: 0
         emf: 0
         iwkN26: 0
@@ -343,7 +425,7 @@ data:
             client_private_key: /mnt/newtls/ausf.key
             client_cert: /mnt/newtls/ausf.crt
 
-      service_id: niralos.ausf.001
+      service_id: {{ include "niralos.serviceId" (dict "root" $ "nf" "ausf") }}
       site_id: SITE_ID_CORE
   ausf_init.sh: |
     #!/bin/bash
@@ -428,7 +510,7 @@ data:
           - address: UDR_IP
             port: 9090
 
-      service_id: niralos.udr.001
+      service_id: {{ include "niralos.serviceId" (dict "root" $ "nf" "udr") }}
       site_id: SITE_ID_CORE
   udr_init.sh: |
     #!/bin/bash
@@ -534,7 +616,7 @@ data:
             client_private_key: /mnt/newtls/udm.key
             client_cert: /mnt/newtls/udm.crt
 
-      service_id: niralos.udm.001
+      service_id: {{ include "niralos.serviceId" (dict "root" $ "nf" "udm") }}
       site_id: SITE_ID_CORE
 
   udm_init.sh: |
@@ -622,7 +704,7 @@ data:
           - address: PCF_IP
             port: 9090
 
-      service_id: niralos.pcf.001
+      service_id: {{ include "niralos.serviceId" (dict "root" $ "nf" "pcf") }}
       site_id: SITE_ID_CORE
 
   pcf_init.sh: |
@@ -702,7 +784,7 @@ data:
             client_private_key: /mnt/newtls/bsf.key
             client_cert: /mnt/newtls/bsf.crt
 
-      service_id: niralos.bsf.001
+      service_id: {{ include "niralos.serviceId" (dict "root" $ "nf" "bsf") }}
       site_id: SITE_ID_CORE
 
   bsf_init.sh: |
@@ -764,17 +846,15 @@ data:
             - uri: http://niralos-scp-1:7777
 
           nsi:
+            {{- range .Values.coreNetwork.slices }}
+            {{- if and . .sst }}
             - uri: http://niralos-nrf-1:7777
               s_nssai:
-                sst: {{ (index .Values.coreNetwork.slices 0).sst }}
-                sd: {{ (index .Values.coreNetwork.nssfSlices 0).sd }}
+                sst: {{ .sst }}
+                sd: {{ .sd | quote }}
                 dynamic: 0
-
-            - uri: http://niralos-nrf-1:7777
-              s_nssai:
-                sst: {{ (index .Values.coreNetwork.slices 0).sst }}
-                sd: {{ (index .Values.coreNetwork.nssfSlices 1).sd }}
-                dynamic: 0
+            {{- end }}
+            {{- end }}
 
       default:
         tls:
@@ -796,7 +876,7 @@ data:
           - address: NSSF_IP
             port: 9090
 
-      service_id: niralos.nssf.001
+      service_id: {{ include "niralos.serviceId" (dict "root" $ "nf" "nssf") }}
       site_id: SITE_ID_CORE
 
   nssf_init.sh: |
@@ -905,6 +985,21 @@ data:
               port: 9090
 
         session:
+          {{- if .Values.coreNetwork.dnns }}
+          {{- range .Values.coreNetwork.dnns }}
+          {{- if and . .name }}
+          - subnet: {{ .gateway }}/{{ index (splitList "/" .cidr) 1 }}
+            #gateway: {{ .gateway }}
+            dnn: {{ .name }}
+            dev: {{ .dev }}
+            dhcp:
+              disable: true
+              server_ip: 10.108.108.4
+              iface: eth1
+              vendor_class_id: class-{{ .name }}
+          {{- end }}
+          {{- end }}
+          {{- else }}
           - subnet: UE_IPV4_INTERNET_TUN_IP
             #gateway: 10.101.0.1
             dnn: internet
@@ -924,22 +1019,26 @@ data:
               server_ip: 10.108.108.4
               iface: eth1
               vendor_class_id: class-ims
+          {{- end }}
 
         info:
           - s_nssai:
-              - sst: {{ (index .Values.coreNetwork.slices 0).sst }}
-                sd: {{ (index .Values.coreNetwork.slices 0).sd }}
+            {{- range .Values.coreNetwork.slices }}
+            {{- if and . .sst }}
+              - sst: {{ .sst }}
+                sd: {{ .sd | quote }}
                 dnn:
+                {{- if .dnns }}
+                {{- range .dnns }}
+                  - {{ . }}
+                {{- end }}
+                {{- else }}
                   - internet
-                  - ims
+                {{- end }}
                 requested_unit: 1500
                 dynamic: 0
-
-              - sst: {{ (index .Values.coreNetwork.slices 0).sst }}
-                sd: {{ (index .Values.coreNetwork.slices 1).sd }}
-                dnn:
-                  - internet
-                dynamic: 0
+            {{- end }}
+            {{- end }}
 
         dns:
           - SMF_DNS1
@@ -959,7 +1058,7 @@ data:
           server:
             - address: SMF_IP
               port: 9091
-        service_id: niralos.smf.001
+        service_id: {{ include "niralos.serviceId" (dict "root" $ "nf" "smf") }}
         site_id: SITE_ID_CORE
   smf_4g.yaml: |
     logger:
@@ -1312,6 +1411,16 @@ data:
             advertise: UPF_ADVERTISE_IP
 
       session:
+        {{- if .Values.coreNetwork.dnns }}
+        {{- range .Values.coreNetwork.dnns }}
+        {{- if and . .name }}
+        - subnet: {{ .gateway }}/{{ index (splitList "/" .cidr) 1 }}
+          gateway: {{ .gateway }}
+          dev: {{ .dev }}
+          dnn: {{ .name }}
+        {{- end }}
+        {{- end }}
+        {{- else }}
         - subnet: UE_IPV4_INTERNET_TUN_IP
           gateway: 10.101.0.1
           dev: niralos-gw
@@ -1321,12 +1430,13 @@ data:
           gateway: 10.102.0.1
           dev: niralos-gw2
           dnn: ims
+        {{- end }}
 
       metrics:
         server:
           - address: UPF_IP
             port: 9090
-      service_id: niralos.upf.001
+      service_id: {{ include "niralos.serviceId" (dict "root" $ "nf" "upf") }}
       site_id: SITE_ID_CORE
 
   upf_init.sh: |
@@ -1338,6 +1448,17 @@ data:
     export IF_NAME=$(ip r | awk '/default/ { print $5 }')
     export DB_URI="mongodb://${MONGO_IP}/niralos"
 
+    {{- if .Values.coreNetwork.dnns }}
+    {{- range .Values.coreNetwork.dnns }}
+    {{- if and . .dev }}
+    python3 /mnt/upf/tun_if.py \
+      --tun_ifname {{ .dev }} \
+      --ipv4_range {{ .cidr }} \
+      --ipv6_range {{ .ipv6Range | default "2001:230:cafe::/48" }} \
+      --nat_rule {{ if .nat }}yes{{ else }}no{{ end }}
+    {{- end }}
+    {{- end }}
+    {{- else }}
     python3 /mnt/upf/tun_if.py \
       --tun_ifname niralos-gw \
       --ipv4_range $UE_IPV4_INTERNET \
@@ -1348,9 +1469,19 @@ data:
       --ipv4_range $UE_IPV4_IMS \
       --ipv6_range 2001:230:babe::/48 \
       --nat_rule no
+    {{- end }}
 
     UE_IPV4_INTERNET_TUN_IP=$(python3 /mnt/upf/ip_utils.py --ip_range $UE_IPV4_INTERNET)
     UE_IPV4_IMS_TUN_IP=$(python3 /mnt/upf/ip_utils.py --ip_range $UE_IPV4_IMS)
+
+    # Protect cluster service IPs from being hijacked by TUN interface subnets
+    DEFAULT_GW=$(ip r | awk '/default/ { print $3 }')
+    for svc in timescaledb mongo; do
+        SVC_IP=$(getent hosts $svc | awk '{print $1}')
+        if [ -n "$SVC_IP" ] && [ -n "$DEFAULT_GW" ] && [ -n "$IF_NAME" ]; then
+            ip route add ${SVC_IP}/32 via ${DEFAULT_GW} dev ${IF_NAME} 2>/dev/null || true
+        fi
+    done
 
     cp /mnt/upf/upf.yaml /niralos/install/etc/niralos/
 
@@ -1766,15 +1897,60 @@ data:
           N3IWFID: 135
         Name: niralos_N3IWF
         SupportedTAList:
-          - TAC: {{ printf "%06d" (int .Values.coreNetwork.tai.tac) }}
+        {{- $tacs := list }}
+        {{- if eq (kindOf .Values.coreNetwork.tai) "slice" }}
+          {{- range .Values.coreNetwork.tai }}
+            {{- if kindIs "slice" .tac }}
+              {{- range .tac }}{{ $tacs = append $tacs . }}{{ end }}
+            {{- else if .tac }}
+              {{- $tacs = append $tacs .tac }}
+            {{- end }}
+          {{- end }}
+        {{- else }}
+          {{- if kindIs "slice" .Values.coreNetwork.tai.tac }}
+            {{- $tacs = .Values.coreNetwork.tai.tac }}
+          {{- else if .Values.coreNetwork.tai.tacList }}
+            {{- $tacs = .Values.coreNetwork.tai.tacList }}
+          {{- else if .Values.coreNetwork.tai.tac }}
+            {{- $tacs = list .Values.coreNetwork.tai.tac }}
+          {{- else }}
+            {{- $tacs = list 1 }}
+          {{- end }}
+        {{- end }}
+        {{- $tacs = uniq $tacs }}
+        {{- range $tacs }}
+          - TAC: {{ printf "%06d" (int .) }}
             BroadcastPLMNList:
+              {{- if $.Values.coreNetwork.plmnList }}
+              {{- range $.Values.coreNetwork.plmnList }}
+              {{- if and . .mcc }}
+              - PLMNID:
+                  MCC: {{ .mcc | quote }}
+                  MNC: {{ .mnc | quote }}
+                TAISliceSupportList:
+                  {{- range $.Values.coreNetwork.slices }}
+                  {{- if and . .sst }}
+                  - SNSSAI:
+                      SST: {{ .sst }}
+                      SD: {{ .sd | quote }}
+                  {{- end }}
+                  {{- end }}
+              {{- end }}
+              {{- end }}
+              {{- else }}
               - PLMNID:
                   MCC: __MCC__
                   MNC: __MNC__
                 TAISliceSupportList:
+                  {{- range $.Values.coreNetwork.slices }}
+                  {{- if and . .sst }}
                   - SNSSAI:
-                      SST: {{ (index .Values.coreNetwork.slices 0).sst }}
-                      SD: {{ (index .Values.coreNetwork.slices 0).sd }}
+                      SST: {{ .sst }}
+                      SD: {{ .sd | quote }}
+                  {{- end }}
+                  {{- end }}
+              {{- end }}
+        {{- end }}
 
       AMFSCTPAddresses:
         - IP:

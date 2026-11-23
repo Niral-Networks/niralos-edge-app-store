@@ -4,3 +4,6 @@
 *.tgz
 *.bak
 rendered.yaml
+SOURCE_MANIFESTS.txt
+scripts/
+README.md
