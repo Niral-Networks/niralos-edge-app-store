@@ -117,7 +117,6 @@ networking:
       name: macvlan-conf
       ips: 192.168.0.203/16
     n3iwf:
-    STARTUP_DELAY: 120
       enabled: true
       name: macvlan-conf
       ips: 192.168.0.204/16
